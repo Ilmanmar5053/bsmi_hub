@@ -20,6 +20,9 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
+# Fix Apache MPM conflict (Debian apt-get might enable event/worker)
+RUN a2dismod mpm_event mpm_worker && a2enmod mpm_prefork
+
 # Configure and install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
