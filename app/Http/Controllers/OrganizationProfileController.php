@@ -71,7 +71,7 @@ class OrganizationProfileController extends Controller
                 OrganizationProfile::create($validated);
             }
 
-            return redirect()->route('profile.show')
+            return redirect()->route('profil-organisasi.show')
                 ->with('success', 'Profil organisasi berhasil diperbarui.');
         } catch (\Throwable $e) {
             return back()->with('error', 'Gagal memperbarui profil: ' . $e->getMessage());

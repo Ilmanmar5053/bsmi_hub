@@ -155,8 +155,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Organization Profile
     Route::middleware(['permission:view-organization'])->group(function () {
-        Route::get('/profil-organisasi', [OrganizationProfileController::class, 'show'])->name('profile.show');
-        Route::put('/profil-organisasi', [OrganizationProfileController::class, 'update'])->name('profile.update');
+        Route::get('/profil-organisasi', [OrganizationProfileController::class, 'show'])->name('profil-organisasi.show');
+        Route::put('/profil-organisasi', [OrganizationProfileController::class, 'update'])->name('profil-organisasi.update');
     });
 
     // User Management
