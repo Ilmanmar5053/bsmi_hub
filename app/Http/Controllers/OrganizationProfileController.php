@@ -30,6 +30,10 @@ class OrganizationProfileController extends Controller
                 'history'      => $profile->history,
                 'logo_path'    => $profile->logo_path,
                 'logo_url'     => $profile->logo_url,
+                'regional_logos' => $profile->regional_logos ?: [],
+                'regional_logos_url' => collect($profile->regional_logos ?: [])->mapWithKeys(function ($path, $region) {
+                    return [$region => asset('storage/' . $path)];
+                })->toArray(),
             ],
         ]);
     }
@@ -75,6 +79,47 @@ class OrganizationProfileController extends Controller
                 ->with('success', 'Profil organisasi berhasil diperbarui.');
         } catch (\Throwable $e) {
             return back()->with('error', 'Gagal memperbarui profil: ' . $e->getMessage());
+        }
+    }
+
+    public function updateRegionalLogos(Request $request): RedirectResponse
+    {
+        if ($request->user() && $request->user()->hasAnyRole(['anggota', 'relawan'])) {
+            return back()->with('error', 'Peran Anggota/Relawan tidak diizinkan untuk mengubah profil organisasi.');
+        }
+
+        $request->validate([
+            'regional' => 'required|string',
+            'logo'     => 'nullable|image|mimes:jpg,jpeg,png,svg,webp|max:2048',
+        ]);
+
+        try {
+            $profile = OrganizationProfile::first() ?? OrganizationProfile::create(['name' => 'BSMI']);
+            $logos = $profile->regional_logos ?: [];
+            $regional = $request->regional;
+
+            if ($request->hasFile('logo')) {
+                // Hapus logo lama jika ada
+                if (isset($logos[$regional])) {
+                    Storage::disk('public')->delete($logos[$regional]);
+                }
+                $logos[$regional] = $request->file('logo')->store('regional_logos', 'public');
+            } else {
+                // Jika tidak ada file tapi disubmit, mungkin ingin menghapus? 
+                // Untuk sementara kita biarkan jika tidak ada action remove eksplisit.
+                if ($request->input('remove')) {
+                    if (isset($logos[$regional])) {
+                        Storage::disk('public')->delete($logos[$regional]);
+                        unset($logos[$regional]);
+                    }
+                }
+            }
+
+            $profile->update(['regional_logos' => $logos]);
+
+            return back()->with('success', "Logo regional {$regional} berhasil diperbarui.");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal memperbarui logo regional: ' . $e->getMessage());
         }
     }
 }

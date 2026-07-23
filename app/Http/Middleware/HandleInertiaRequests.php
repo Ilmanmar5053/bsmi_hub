@@ -49,6 +49,9 @@ class HandleInertiaRequests extends Middleware
                     'phone' => $org->phone,
                     'email' => $org->email,
                     'logo_url' => $org->logo_url,
+                    'regional_logos_url' => collect($org->regional_logos ?: [])->mapWithKeys(function ($path, $region) {
+                        return [$region => asset('storage/' . $path)];
+                    })->toArray(),
                 ] : null;
             },
         ];

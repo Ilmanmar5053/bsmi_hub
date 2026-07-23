@@ -20,48 +20,68 @@ class MemberController extends Controller
 {
     public function index(Request $request): Response
     {
-        $filters = $request->only(['search', 'status_aktif', 'bagian_divisi']);
+        $filters = $request->only(['search', 'status_aktif', 'bagian_divisi', 'per_page', 'sort_by', 'sort_direction']);
+        $perPage = $filters['per_page'] ?? '10';
+        $sortBy = $filters['sort_by'] ?? 'nama_lengkap';
+        $sortDirection = $filters['sort_direction'] ?? 'asc';
 
-        $members = Member::query()
+        $query = Member::query()
+            ->withExists(['executives' => fn ($q) => $q->where('status_aktif', true)])
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('nama_lengkap', 'like', "%{$search}%")
                       ->orWhere('no_induk_anggota', 'like', "%{$search}%");
                 });
             })
-            ->when(isset($filters['status_aktif']), fn($q) => $q->where('status_aktif', $filters['status_aktif']))
+            ->when(isset($filters['status_aktif']) && $filters['status_aktif'] !== '', function ($q) use ($filters) {
+                $val = $filters['status_aktif'] === 'active' || $filters['status_aktif'] === '1' ? true : false;
+                $q->where('status_aktif', $val);
+            })
             ->when($filters['bagian_divisi'] ?? null, fn($q, $v) => $q->where('bagian_divisi', $v))
-            ->orderBy('nama_lengkap')
-            ->paginate(15)
-            ->withQueryString()
-            ->through(fn($member) => [
-                'id'            => $member->id,
-                'no_induk_anggota' => $member->no_induk_anggota,
-                'nama_lengkap'  => $member->nama_lengkap,
-                'gender'        => $member->gender,
-                'email'         => $member->email,
-                'no_whatsapp'   => $member->no_whatsapp,
-                'bagian_divisi'  => $member->bagian_divisi,
-                'status_aktif'  => $member->status_aktif,
-                'join_date'     => $member->join_date?->toDateString(),
-                'birth_date'    => $member->birth_date?->toDateString(),
-                'alamat_domisili' => $member->alamat_domisili,
-                'golongan_darah'=> $member->golongan_darah,
-                'profesi_utama' => $member->profesi_utama,
-                'kesiapan_mobilisasi' => $member->kesiapan_mobilisasi,
-                'ukuran_baju'   => $member->ukuran_baju,
-                'emergency_contact' => $member->emergency_contact,
-                'emergency_phone' => $member->emergency_phone,
-                'notes' => $member->notes,
-                'photo_url'     => $member->photo_url,
-                'user_id'       => $member->user_id,
-                'regional_cabang'      => $member->regional_cabang,
-                'pendidikan_terakhir'  => $member->pendidikan_terakhir,
-                'jurusan'              => $member->jurusan,
-                'status_keluarga'      => $member->status_keluarga,
-                'agama'                => $member->agama,
-                'jumlah_tanggungan'    => $member->jumlah_tanggungan,
-            ]);
+            ->orderBy($sortBy, $sortDirection)
+            ->when($sortBy !== 'id', fn($q) => $q->orderBy('id', 'desc'));
+
+        $memberMap = fn($member) => [
+            'id'            => $member->id,
+            'no_induk_anggota' => $member->no_induk_anggota,
+            'nama_lengkap'  => $member->nama_lengkap,
+            'gender'        => $member->gender,
+            'email'         => $member->email,
+            'no_whatsapp'   => $member->no_whatsapp,
+            'bagian_divisi'  => $member->bagian_divisi,
+            'status_aktif'  => $member->status_aktif,
+            'join_date'     => $member->join_date?->toDateString(),
+            'birth_date'    => $member->birth_date?->toDateString(),
+            'alamat_domisili' => $member->alamat_domisili,
+            'golongan_darah'=> $member->golongan_darah,
+            'profesi_utama' => $member->profesi_utama,
+            'kesiapan_mobilisasi' => $member->kesiapan_mobilisasi,
+            'ukuran_baju'   => $member->ukuran_baju,
+            'emergency_contact' => $member->emergency_contact,
+            'emergency_phone' => $member->emergency_phone,
+            'notes' => $member->notes,
+            'photo_url'     => $member->photo_url,
+            'user_id'       => $member->user_id,
+            'regional_cabang'      => $member->regional_cabang,
+            'pendidikan_terakhir'  => $member->pendidikan_terakhir,
+            'jurusan'              => $member->jurusan,
+            'status_keluarga'      => $member->status_keluarga,
+            'agama'                => $member->agama,
+            'jumlah_tanggungan'    => $member->jumlah_tanggungan,
+            'is_pengurus'          => $member->executives_exists ?? false,
+        ];
+
+        if ($perPage === 'all') {
+            $allMembers = $query->get()->map($memberMap);
+            $members = new \Illuminate\Pagination\LengthAwarePaginator(
+                $allMembers, $allMembers->count(), $allMembers->count() ?: 1, 1,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
+        } else {
+            $members = $query->paginate((int) $perPage)
+                ->withQueryString()
+                ->through($memberMap);
+        }
 
         $stats = [
             'total' => Member::count(),
@@ -112,8 +132,16 @@ class MemberController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        if ($request->filled('no_induk_anggota')) {
+            $existing = Member::where('no_induk_anggota', $request->input('no_induk_anggota'))->first();
+            if ($existing) {
+                $msg = "Nomor Induk Anggota sudah dipakai di {$existing->nama_lengkap}, gunakan No Induk yg sesuai dengan di Kartu Tanda Anggota BSMI";
+                return back()->withErrors(['no_induk_anggota' => $msg])->with('error', $msg)->withInput();
+            }
+        }
+
         $validated = $request->validate([
-            'no_induk_anggota' => 'required|string|max:50|unique:members,no_induk_anggota',
+            'no_induk_anggota' => 'required|string|max:50',
             'nama_lengkap'     => 'required|string|max:255',
             'gender'           => 'nullable|in:L,P',
             'email'            => 'nullable|email|max:255|unique:members,email',
@@ -153,8 +181,13 @@ class MemberController extends Controller
                     // Update user_id in member
                     $validated['user_id'] = $volunteer->user_id;
 
+                    // Sync photo_path from volunteer if member has no photo uploaded
+                    if (!isset($validated['photo_path']) && $volunteer->photo_path) {
+                        $validated['photo_path'] = $volunteer->photo_path;
+                    }
+
                     // Sync changes back to the Volunteer record
-                    $volunteer->update([
+                    $volunteerData = [
                         'name' => $validated['nama_lengkap'],
                         'gender' => $validated['gender'] ?? null,
                         'email' => $validated['email'] ?? null,
@@ -172,7 +205,13 @@ class MemberController extends Controller
                         'ukuran_baju' => $validated['ukuran_baju'] ?? null,
                         'emergency_contact' => $validated['emergency_contact'] ?? null,
                         'emergency_phone' => $validated['emergency_phone'] ?? null,
-                    ]);
+                    ];
+                    
+                    if (isset($validated['photo_path'])) {
+                        $volunteerData['photo_path'] = $validated['photo_path'];
+                    }
+
+                    $volunteer->update($volunteerData);
                 }
             }
             unset($validated['volunteer_id']);
@@ -188,8 +227,16 @@ class MemberController extends Controller
 
     public function update(Request $request, Member $member): RedirectResponse
     {
+        if ($request->filled('no_induk_anggota') && $request->input('no_induk_anggota') !== $member->no_induk_anggota) {
+            $existing = Member::where('no_induk_anggota', $request->input('no_induk_anggota'))->first();
+            if ($existing) {
+                $msg = "Nomor Induk Anggota sudah dipakai di {$existing->nama_lengkap}, gunakan No Induk yg sesuai dengan di Kartu Tanda Anggota BSMI";
+                return back()->withErrors(['no_induk_anggota' => $msg])->with('error', $msg)->withInput();
+            }
+        }
+
         $validated = $request->validate([
-            'no_induk_anggota' => 'required|string|max:50|unique:members,no_induk_anggota,' . $member->id,
+            'no_induk_anggota' => 'required|string|max:50',
             'nama_lengkap'     => 'required|string|max:255',
             'gender'           => 'nullable|in:L,P',
             'email'            => 'nullable|email|max:255|unique:members,email,' . $member->id,

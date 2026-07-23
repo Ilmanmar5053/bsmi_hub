@@ -12,7 +12,9 @@ class ProgramController extends Controller
 {
     public function index(Request $request): Response
     {
-        $filters = $request->only(['search', 'status', 'category']);
+        $filters = $request->only(['search', 'status', 'category', 'sort_by', 'sort_direction']);
+        $sortBy = $filters['sort_by'] ?? 'start_date';
+        $sortDirection = $filters['sort_direction'] ?? 'desc';
 
         $programs = Program::with('creator')
             ->when($filters['search'] ?? null, fn($q, $v) =>
@@ -21,7 +23,8 @@ class ProgramController extends Controller
             )
             ->when($filters['status'] ?? null, fn($q, $v) => $q->where('status', $v))
             ->when($filters['category'] ?? null, fn($q, $v) => $q->where('category', $v))
-            ->orderByDesc('start_date')
+            ->orderBy($sortBy, $sortDirection)
+            ->when($sortBy !== 'id', fn($q) => $q->orderBy('id', 'desc'))
             ->paginate(15)
             ->withQueryString()
             ->through(fn($p) => [

@@ -25,6 +25,12 @@ class DeliveryNoteController extends Controller
                 'vehicle_plate' => $note->vehicle_plate,
                 'driver_name' => $note->driver_name,
                 'total_items' => $note->items->count(),
+                'items' => $note->items->map(fn($i) => [
+                    'name' => $i->logisticsItem?->name,
+                    'quantity' => $i->quantity,
+                    'unit' => $i->logisticsItem?->unit,
+                    'notes' => $i->notes
+                ]),
             ]);
 
         return Inertia::render('Logistics/DeliveryNotes/Index', [

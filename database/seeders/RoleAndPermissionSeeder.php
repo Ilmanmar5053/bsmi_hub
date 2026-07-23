@@ -12,27 +12,31 @@ class RoleAndPermissionSeeder extends Seeder
     {
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // ── 1. Permissions ────────────────────────────────────────────────────
+        // Bersihkan permission lama (opsional, agar db bersih)
+        \Illuminate\Support\Facades\DB::table('role_has_permissions')->truncate();
+        \Illuminate\Support\Facades\DB::table('model_has_permissions')->truncate();
+        Permission::query()->delete();
+
+        // ── 1. Permissions (Menu Based) ───────────────────────────
         $permissionNames = [
-            'view-dashboard',
-            'view-organization',
-            'view-members',
-            'manage-members',
-            'manage-executives',
-            'manage-beneficiaries',
-            'manage-programs',
-            'view-logistics',
-            'manage-logistics',
-            'view-dues',
-            'manage-dues',
-            'view-volunteers',
-            'manage-volunteers',
-            'manage-users',
-            'view-finance',
-            'manage-finance',
-            'manage-news',
-            'view-reports',
-            'export-reports',
+            'menu-dashboard',
+            'menu-organization',
+            'menu-members',
+            'menu-executives',
+            'menu-volunteers',
+            'menu-diklatsar',
+            'menu-programs',
+            'menu-beneficiaries',
+            'menu-news',
+            'menu-finance',
+            'menu-donations',
+            'menu-dues',
+            'menu-logistics',
+            'menu-assets',
+            'menu-vehicle-usages',
+            'menu-reports',
+            'menu-users',
+            'menu-activity-logs',
         ];
 
         $permissions = collect($permissionNames)->map(
@@ -46,65 +50,40 @@ class RoleAndPermissionSeeder extends Seeder
         $superAdmin->syncPermissions($permissions->all());
 
         $ketua = Role::firstOrCreate(['name' => 'ketua', 'guard_name' => 'web']);
-        $ketua->syncPermissions($perms([
-            'view-dashboard', 'view-organization',
-            'view-members', 'manage-members',
-            'manage-executives', 'manage-beneficiaries', 'manage-programs',
-            'view-logistics', 'manage-logistics',
-            'view-dues', 'manage-dues',
-            'view-volunteers', 'manage-volunteers',
-            'view-finance', 'manage-finance',
-            'manage-news',
-            'view-reports', 'export-reports',
-        ]));
+        $ketua->syncPermissions($permissions->all()); // Ketua full access
 
         $sekretaris = Role::firstOrCreate(['name' => 'sekretaris', 'guard_name' => 'web']);
         $sekretaris->syncPermissions($perms([
-            'view-dashboard', 'view-organization',
-            'view-members', 'manage-members',
-            'manage-executives', 'manage-programs',
-            'view-volunteers', 'manage-volunteers',
-            'manage-news',
-            'view-reports', 'export-reports',
+            'menu-dashboard', 'menu-organization', 'menu-members', 'menu-executives',
+            'menu-volunteers', 'menu-diklatsar', 'menu-programs', 'menu-beneficiaries',
+            'menu-news', 'menu-reports', 'menu-users', 'menu-activity-logs'
         ]));
 
         $bendahara = Role::firstOrCreate(['name' => 'bendahara', 'guard_name' => 'web']);
         $bendahara->syncPermissions($perms([
-            'view-dashboard',
-            'view-finance', 'manage-finance',
-            'view-dues', 'manage-dues',
-            'view-reports', 'export-reports',
+            'menu-dashboard', 'menu-finance', 'menu-donations', 'menu-dues', 'menu-reports'
         ]));
 
         $koordinatorLogistik = Role::firstOrCreate(['name' => 'koordinator_logistik', 'guard_name' => 'web']);
         $koordinatorLogistik->syncPermissions($perms([
-            'view-dashboard',
-            'view-members',
-            'view-logistics', 'manage-logistics',
-            'manage-beneficiaries',
-            'view-reports',
+            'menu-dashboard', 'menu-members', 'menu-logistics', 'menu-assets', 'menu-vehicle-usages', 'menu-beneficiaries', 'menu-reports'
         ]));
 
         $staff = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web']);
         $staff->syncPermissions($perms([
-            'view-dashboard',
-            'view-members',
-            'view-logistics',
-            'view-dues',
-            'view-volunteers',
-            'manage-news',
+            'menu-dashboard', 'menu-members', 'menu-volunteers', 'menu-programs', 'menu-news', 'menu-reports'
         ]));
 
         $anggota = Role::firstOrCreate(['name' => 'anggota', 'guard_name' => 'web']);
         $anggota->syncPermissions($perms([
-            'view-dashboard'
+            'menu-dashboard'
         ]));
 
         $relawan = Role::firstOrCreate(['name' => 'relawan', 'guard_name' => 'web']);
         $relawan->syncPermissions($perms([
-            'view-dashboard'
+            'menu-dashboard'
         ]));
 
-        $this->command->info('✅  RoleAndPermissionSeeder selesai. Hak Akses telah diperbarui.');
+        $this->command->info('✅  RoleAndPermissionSeeder selesai. Hak Akses (Menu Based) telah diperbarui.');
     }
 }

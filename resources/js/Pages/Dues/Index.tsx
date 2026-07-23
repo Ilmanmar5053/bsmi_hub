@@ -3,6 +3,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { StatCard, StatusBadge, Modal, formatRupiah, formatDate, EmptyState } from '@/Components/Shared';
 import { Plus, CheckCircle, CreditCard, XCircle } from 'lucide-react';
+import { confirmAction } from '@/Utils/swal';
 
 interface Period {
     id: number;
@@ -49,15 +50,15 @@ export default function DuesIndex({ periods, currentPeriod, payments, filters }:
         router.get('/dues', { period_id: periodFilter, status: statusFilter }, { preserveState: true });
     };
 
-    const handlePay = (id: number) => {
-        if (confirm('Tandai iuran ini sebagai lunas?')) {
+    const handlePay = async (id: number) => {
+        if (await confirmAction('Tandai iuran ini sebagai lunas?')) {
             const today = new Date().toISOString().split('T')[0];
             router.post(`/dues/${id}/pay`, { paid_date: today });
         }
     };
 
-    const handleUnpay = (id: number) => {
-        if (confirm('Batalkan status lunas iuran ini? (Status akan kembali menjadi belum lunas)')) {
+    const handleUnpay = async (id: number) => {
+        if (await confirmAction('Batalkan status lunas iuran ini? (Status akan kembali menjadi belum lunas)')) {
             router.post(`/dues/${id}/unpay`);
         }
     };

@@ -10,6 +10,7 @@ use App\Models\Member;
 use App\Models\Program;
 use App\Models\Volunteer;
 use App\Models\DiklatsarModule;
+use App\Models\Asset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -20,12 +21,12 @@ class DashboardController extends Controller
     public function index(): Response
     {
         // ── Core stats ──────────────────────────────────────────────────────
-        $totalMembers      = Member::where('status_aktif', true)->count();
+        $totalMembers      = Member::count();
         $totalExecutives   = Executive::where('status_aktif', true)->count();
         $totalVolunteers   = Volunteer::where('status', 'approved')->count();
         $totalBeneficiaries = Beneficiary::count();
         $totalPrograms     = Program::where('status', 'ongoing')->count();
-        $totalDonations    = Donation::sum('amount');
+        $totalDonations    = Donation::whereIn('status', ['received', 'distributed'])->sum('amount');
         $pendingVolunteers = Volunteer::where('status', 'pending')->count();
 
         // ── Monthly income / expense chart (last 6 months) ──────────────────
@@ -38,6 +39,18 @@ class DashboardController extends Controller
 
         $recentPrograms = Program::orderBy('created_at', 'desc')
             ->take(6)
+            ->get();
+            
+        $topAssets = Asset::whereNotNull('nilai_aset')
+            ->orderBy('nilai_aset', 'desc')
+            ->take(5)
+            ->get();
+
+        $membersPerRegional = Member::select('regional_cabang', DB::raw('count(*) as total'))
+            ->whereNotNull('regional_cabang')
+            ->where('regional_cabang', '!=', '')
+            ->groupBy('regional_cabang')
+            ->orderByDesc('total')
             ->get();
 
         $user = auth()->user();
@@ -82,9 +95,11 @@ class DashboardController extends Controller
                 'totalExpense'       => (float) $totalExpense,
                 'balance'            => (float) $balance,
             ],
-            'chartData'      => $chartData,
-            'recentPrograms' => $recentPrograms,
-            'isVolunteer'    => $isVolunteer,
+            'chartData'         => $chartData,
+            'recentPrograms'    => $recentPrograms,
+            'topAssets'         => $topAssets,
+            'membersPerRegional'=> $membersPerRegional,
+            'isVolunteer'       => $isVolunteer,
             'isAnggota'      => $isAnggota,
             'volunteerData'  => $volunteerData,
             'diklatsarModules' => $diklatsarModules,

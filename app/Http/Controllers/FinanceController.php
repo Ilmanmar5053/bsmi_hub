@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Exports\FinanceExport;
+use App\Exports\FinanceTemplateExport;
+use App\Imports\FinanceImport;
 use App\Models\FinancialTransaction;
 use App\Models\Program;
 use Illuminate\Http\RedirectResponse;
@@ -17,19 +19,26 @@ class FinanceController extends Controller
 {
     public function index(Request $request): Response
     {
-        $filters = $request->only(['type', 'category', 'date_from', 'date_to', 'search']);
+        $filters = $request->only(['type', 'category', 'date_from', 'date_to', 'search', 'month', 'year', 'sort_by', 'sort_direction']);
+
+        $sortBy = $filters['sort_by'] ?? 'date';
+        $sortDirection = $filters['sort_direction'] ?? 'desc';
 
         $transactions = FinancialTransaction::with(['program', 'creator'])
             ->when($filters['type'] ?? null, fn($q, $v) => $q->where('type', $v))
             ->when($filters['category'] ?? null, fn($q, $v) => $q->where('category', $v))
             ->when($filters['date_from'] ?? null, fn($q, $v) => $q->where('date', '>=', $v))
             ->when($filters['date_to'] ?? null, fn($q, $v) => $q->where('date', '<=', $v))
+            ->when($filters['month'] ?? null, fn($q, $v) => $q->whereMonth('date', $v))
+            ->when($filters['year'] ?? null, fn($q, $v) => $q->whereYear('date', $v))
             ->when($filters['search'] ?? null, fn($q, $v) =>
-                $q->where('description', 'like', "%{$v}%")
-                  ->orWhere('notes', 'like', "%{$v}%")
+                $q->where(function($query) use ($v) {
+                    $query->where('description', 'like', "%{$v}%")
+                          ->orWhere('notes', 'like', "%{$v}%");
+                })
             )
-            ->orderByDesc('date')
-            ->orderByDesc('id')
+            ->orderBy($sortBy, $sortDirection)
+            ->when($sortBy !== 'id', fn($q) => $q->orderBy('id', 'desc'))
             ->paginate(20)
             ->withQueryString()
             ->through(fn($t) => [
@@ -47,13 +56,17 @@ class FinanceController extends Controller
         // ── Summary stats (filtered range) ────────────────────────────────────
         $summaryQuery = FinancialTransaction::query()
             ->when($filters['date_from'] ?? null, fn($q, $v) => $q->where('date', '>=', $v))
-            ->when($filters['date_to'] ?? null, fn($q, $v) => $q->where('date', '<=', $v));
+            ->when($filters['date_to'] ?? null, fn($q, $v) => $q->where('date', '<=', $v))
+            ->when($filters['month'] ?? null, fn($q, $v) => $q->whereMonth('date', $v))
+            ->when($filters['year'] ?? null, fn($q, $v) => $q->whereYear('date', $v));
 
         $totalIncome  = (clone $summaryQuery)->where('type', 'pemasukan')->sum('amount');
         $totalExpense = (clone $summaryQuery)->where('type', 'pengeluaran')->sum('amount');
 
         $categories = FinancialTransaction::distinct()->pluck('category')->filter()->sort()->values();
         $programs   = Program::orderBy('title')->get(['id', 'title']);
+
+        $bankAccounts = \App\Models\BankAccount::all();
 
         return Inertia::render('Finance/Index', [
             'transactions' => $transactions,
@@ -62,9 +75,10 @@ class FinanceController extends Controller
                 'totalExpense' => (float) $totalExpense,
                 'balance'      => (float) ($totalIncome - $totalExpense),
             ],
-            'categories' => $categories,
-            'programs'   => $programs,
-            'filters'    => $filters,
+            'categories'   => $categories,
+            'programs'     => $programs,
+            'filters'      => $filters,
+            'bankAccounts' => $bankAccounts,
         ]);
     }
 
@@ -147,10 +161,31 @@ class FinanceController extends Controller
 
     public function exportExcel(Request $request): BinaryFileResponse
     {
-        $filters = $request->only(['type', 'category', 'date_from', 'date_to']);
+        $filters = $request->only(['type', 'category', 'date_from', 'date_to', 'month', 'year']);
         return Excel::download(
             new FinanceExport($filters),
             'keuangan-' . now()->format('Ymd') . '.xlsx'
         );
+    }
+
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        return Excel::download(new FinanceTemplateExport(), 'template-import-keuangan.xlsx');
+    }
+
+    public function importExcel(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        try {
+            Excel::import(new FinanceImport, $request->file('file'));
+            return back()->with('success', 'Data keuangan berhasil diimport.');
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            return back()->with('error', 'Gagal import: Periksa format data Excel.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Terjadi kesalahan saat import: ' . $e->getMessage());
+        }
     }
 }

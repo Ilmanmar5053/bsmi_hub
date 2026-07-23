@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Plus, Search, Calendar as CalendarIcon, Tag, Image as ImageIcon, ChevronRight, X, Clock, Trash2, Newspaper } from 'lucide-react';
 import { Modal } from '@/Components/Shared';
+import { Plus, Search, Image as ImageIcon, ChevronRight, Clock, Trash2, Newspaper, Edit } from 'lucide-react';
+import { confirmAction } from '@/Utils/swal';
 
 // Helper function to compress images
 const compressImage = (file: File, maxWidth = 1920, quality = 0.7): Promise<File> => {
@@ -45,15 +46,15 @@ const compressImage = (file: File, maxWidth = 1920, quality = 0.7): Promise<File
 
 export default function NewsIndex({ news, filters }: any) {
     const { auth } = usePage<any>().props;
-    const canManageNews = auth.permissions?.includes('manage-news')
+    const isSuperAdmin = auth.roles?.includes('administrator');
+    const canManageNews = isSuperAdmin || (auth.permissions?.includes('menu-news')
         && !auth.roles?.includes('anggota')
-        && !auth.roles?.includes('relawan');
+        && !auth.roles?.includes('relawan'));
     
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [selectedCategory, setSelectedCategory] = useState(filters.category || 'Semua');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [newsToDelete, setNewsToDelete] = useState<any>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
 
     const categories = ['Semua', 'Berita', 'Pengumuman', 'Kegiatan', 'Informasi'];
 
@@ -74,29 +75,45 @@ export default function NewsIndex({ news, filters }: any) {
         window.location.href = `/news?search=${searchTerm}&category=${category}`;
     };
 
+    const handleOpenAdd = () => {
+        reset();
+        setData('_method' as any, 'post');
+        setEditingId(null);
+        setIsCreateModalOpen(true);
+    };
+
+    const handleEdit = (item: any) => {
+        setData({
+            title: item.title,
+            category: item.category,
+            content: item.content,
+            images: [], // Images are managed separately or replaced entirely
+            _method: 'put'
+        } as any);
+        setEditingId(item.id);
+        setIsCreateModalOpen(true);
+    };
+
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/news', {
+        const options = {
             onSuccess: () => {
                 setIsCreateModalOpen(false);
+                setEditingId(null);
                 reset();
             }
-        });
+        };
+
+        if (editingId) {
+            post(`/news/${editingId}`, options);
+        } else {
+            post('/news', options);
+        }
     };
 
-    const confirmDelete = (item: any) => {
-        setNewsToDelete(item);
-        setIsDeleteModalOpen(true);
-    };
-
-    const handleDelete = () => {
-        if (newsToDelete) {
-            destroy(`/news/${newsToDelete.id}`, {
-                onSuccess: () => {
-                    setIsDeleteModalOpen(false);
-                    setNewsToDelete(null);
-                }
-            });
+    const handleDelete = async (item: any) => {
+        if (await confirmAction(`Anda yakin ingin menghapus berita "${item.title}"? Tindakan ini tidak dapat dibatalkan.`)) {
+            destroy(`/news/${item.id}`);
         }
     };
 
@@ -135,7 +152,7 @@ export default function NewsIndex({ news, filters }: any) {
                         
                         {canManageNews && (
                             <button
-                                onClick={() => setIsCreateModalOpen(true)}
+                                onClick={handleOpenAdd}
                                 className="flex items-center justify-center gap-2 px-4 py-2 bg-theme-600 hover:bg-theme-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm"
                             >
                                 <Plus size={16} />
@@ -222,12 +239,22 @@ export default function NewsIndex({ news, filters }: any) {
                                             </Link>
 
                                             {canManageNews && (
-                                                <button 
-                                                    onClick={() => confirmDelete(item)}
-                                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    <button 
+                                                        onClick={() => handleEdit(item)}
+                                                        className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="Edit Berita"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(item)}
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Hapus Berita"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -246,8 +273,8 @@ export default function NewsIndex({ news, filters }: any) {
                 )}
             </div>
 
-            {/* Create News Modal */}
-            <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Buat Berita Baru" size="xl">
+            {/* Create / Edit News Modal */}
+            <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title={editingId ? "Edit Berita" : "Buat Berita Baru"} size="xl">
                 <form onSubmit={handleCreate} className="p-6 space-y-5">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Judul Berita</label>
@@ -314,49 +341,19 @@ export default function NewsIndex({ news, filters }: any) {
                         <button
                             type="button"
                             onClick={() => setIsCreateModalOpen(false)}
-                            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                            className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-xl transition-colors"
                         >
                             Batal
                         </button>
                         <button
                             type="submit"
                             disabled={processing}
-                            className="px-5 py-2.5 text-sm font-medium text-white bg-theme-600 rounded-xl hover:bg-theme-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+                            className="px-6 py-2.5 text-sm font-medium text-white bg-theme-600 hover:bg-theme-700 disabled:opacity-50 rounded-xl shadow-sm shadow-theme-200 transition-all flex items-center justify-center gap-2"
                         >
-                            {processing ? 'Menyimpan...' : 'Simpan Berita'}
+                            {processing ? 'Menyimpan...' : (editingId ? 'Simpan Perubahan' : 'Simpan & Publikasikan')}
                         </button>
                     </div>
                 </form>
-            </Modal>
-
-            {/* Delete Confirmation Modal */}
-            <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Hapus Berita">
-                <div className="p-6 text-center">
-                    <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Trash2 size={32} />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Hapus Berita?</h3>
-                    <p className="text-gray-500 text-sm mb-6">
-                        Anda yakin ingin menghapus berita "{newsToDelete?.title}"? Tindakan ini tidak dapat dibatalkan.
-                    </p>
-                    <div className="flex justify-center gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setIsDeleteModalOpen(false)}
-                            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
-                        >
-                            Batal
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleDelete}
-                            disabled={processing}
-                            className="px-5 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-sm"
-                        >
-                            Ya, Hapus
-                        </button>
-                    </div>
-                </div>
             </Modal>
         </AppLayout>
     );

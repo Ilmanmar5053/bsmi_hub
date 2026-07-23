@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { Search, GraduationCap, CheckCircle2, Circle, ArrowRight, Printer, Settings, Edit, X, Save, FileBadge, Eye } from 'lucide-react';
-import { Modal } from '@/Components/Shared';
+import { Modal, EmptyState } from '@/Components/Shared';
+import { confirmAction } from '@/Utils/swal';
 
 interface Volunteer {
     id: number;
@@ -13,6 +14,7 @@ interface Volunteer {
     job_type: string;
     diklatsar_stage: number;
     applied_date: string;
+    photo_url?: string;
 }
 
 interface DiklatsarModule {
@@ -46,6 +48,26 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
     const roles = props.auth?.roles || [];
     const canEdit = !roles.includes('anggota') && !roles.includes('relawan');
 
+    const maskData = (text: string, type: 'name' | 'phone' | 'email', emailOwner: string) => {
+        if (canEdit || props.auth?.user?.email === emailOwner || !text) return text;
+        if (type === 'name') {
+            if (text.length <= 2) return '*'.repeat(text.length);
+            return text[0] + '*'.repeat(text.length - 2) + text[text.length - 1];
+        }
+        if (type === 'phone') {
+            if (text.length <= 4) return '*'.repeat(text.length);
+            return text.substring(0, 4) + '*'.repeat(text.length - 6) + text.substring(text.length - 2);
+        }
+        if (type === 'email') {
+            const parts = text.split('@');
+            if (parts.length !== 2) return text;
+            const namePart = parts[0];
+            const maskedName = namePart.length > 2 ? namePart[0] + '*'.repeat(namePart.length - 2) + namePart[namePart.length - 1] : '*'.repeat(namePart.length);
+            return `${maskedName}@${parts[1]}`;
+        }
+        return text;
+    };
+
     const [search, setSearch] = useState(filters.search || '');
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isCertSettingsOpen, setIsCertSettingsOpen] = useState(false);
@@ -67,15 +89,41 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
         signature_2_title: props.certificateSetting?.signature_2_title || ''
     });
 
+    const [selectedVolunteers, setSelectedVolunteers] = useState<number[]>([]);
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get('/diklatsar', { search }, { preserveState: true });
     };
 
-    const handleAdvance = (volunteer: Volunteer) => {
-        if (confirm(`Proses ${volunteer.name} ke tahap ${STAGES[volunteer.diklatsar_stage + 1]}?`)) {
+    const handleAdvance = async (volunteer: Volunteer) => {
+        if (await confirmAction(`Proses ${volunteer.name} ke tahap ${STAGES[volunteer.diklatsar_stage + 1]}?`)) {
             router.patch(`/diklatsar/${volunteer.id}/advance`);
         }
+    };
+
+    const handleBulkAdvance = async () => {
+        if (selectedVolunteers.length === 0) return;
+        if (await confirmAction(`Proses kenaikan tahap untuk ${selectedVolunteers.length} relawan yang dipilih?`)) {
+            router.post('/diklatsar/bulk-advance', { volunteer_ids: selectedVolunteers }, {
+                onSuccess: () => setSelectedVolunteers([])
+            });
+        }
+    };
+
+    const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            const ids = volunteers.data.filter(v => v.diklatsar_stage < 6).map(v => v.id);
+            setSelectedVolunteers(ids);
+        } else {
+            setSelectedVolunteers([]);
+        }
+    };
+
+    const toggleSelect = (id: number) => {
+        setSelectedVolunteers(prev => 
+            prev.includes(id) ? prev.filter(vId => vId !== id) : [...prev, id]
+        );
     };
 
     const openEdit = (mod: DiklatsarModule) => {
@@ -125,7 +173,7 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
             </div>
 
             <div className="card mb-6">
-                <div className="card-header flex justify-between items-center">
+                <div className="card-header flex justify-between items-center flex-wrap gap-4">
                     <form onSubmit={handleSearch} className="flex gap-2">
                         <div className="relative">
                             <input
@@ -139,6 +187,12 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
                         </div>
                         <button type="submit" className="btn-secondary">Cari</button>
                     </form>
+                    
+                    {canEdit && selectedVolunteers.length > 0 && (
+                        <button onClick={handleBulkAdvance} className="btn-primary animate-fade-in-up">
+                            Proses Kenaikan Tahap ({selectedVolunteers.length})
+                        </button>
+                    )}
                 </div>
 
                 <div className="p-0 border-0">
@@ -146,6 +200,16 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    {canEdit && (
+                                        <th className="px-6 py-4 w-10">
+                                            <input 
+                                                type="checkbox" 
+                                                className="rounded border-gray-300 text-theme-600 focus:ring-theme-500 cursor-pointer"
+                                                onChange={toggleSelectAll}
+                                                checked={volunteers.data.filter(v => v.diklatsar_stage < 6).length > 0 && selectedVolunteers.length === volunteers.data.filter(v => v.diklatsar_stage < 6).length}
+                                            />
+                                        </th>
+                                    )}
                                     <th className="px-6 py-4">Relawan</th>
                                     <th className="px-6 py-4 min-w-[500px]">Progres Diklatsar</th>
                                     <th className="px-6 py-4 text-right">Aksi</th>
@@ -154,10 +218,29 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
                             <tbody className="divide-y divide-gray-100 text-sm">
                                 {volunteers.data.length > 0 ? volunteers.data.map((v) => (
                                     <tr key={v.id} className="hover:bg-gray-50/50 transition-colors">
+                                        {canEdit && (
+                                            <td className="px-6 py-4">
+                                                {v.diklatsar_stage < 6 ? (
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="rounded border-gray-300 text-theme-600 focus:ring-theme-500 cursor-pointer"
+                                                        checked={selectedVolunteers.includes(v.id)}
+                                                        onChange={() => toggleSelect(v.id)}
+                                                    />
+                                                ) : null}
+                                            </td>
+                                        )}
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="font-medium text-gray-900 dark:text-white">{v.name}</div>
-                                            <div className="text-gray-500 text-xs">{v.email} • {v.phone}</div>
-                                            <div className="text-gray-400 text-xs mt-1">{v.job_category} - {v.job_type}</div>
+                                            <div className="flex items-center gap-3">
+                                                {v.photo_url && (
+                                                    <img src={v.photo_url} alt="" className="w-10 h-10 rounded-full bg-gray-100 object-cover" />
+                                                )}
+                                                <div>
+                                                    <div className="font-medium text-gray-900 dark:text-white">{maskData(v.name, 'name', v.email)}</div>
+                                                    <div className="text-gray-500 text-xs">{maskData(v.email, 'email', v.email)} • {maskData(v.phone, 'phone', v.email)}</div>
+                                                    <div className="text-gray-400 text-xs mt-1">{v.job_category} - {v.job_type}</div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-1.5 w-full">
@@ -192,14 +275,27 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
                                                         </button>
                                                     )
                                                 ) : (
-                                                    <>
-                                                        <a href={`/diklatsar/${v.id}/certificate/preview`} target="_blank" rel="noreferrer" className="btn-secondary text-xs py-1.5 px-3 flex items-center">
-                                                            <Eye size={14} className="mr-1" /> Preview Layout
-                                                        </a>
-                                                        <a href={`/diklatsar/${v.id}/certificate`} target="_blank" rel="noreferrer" className="btn-success text-xs py-1.5 px-3 flex items-center">
-                                                            <Printer size={14} className="mr-1" /> Unduh PDF
-                                                        </a>
-                                                    </>
+                                                    <div className="flex gap-2">
+                                                        {canEdit || props.auth?.user?.email === v.email ? (
+                                                            <>
+                                                                <a href={`/diklatsar/${v.id}/certificate/preview`} target="_blank" rel="noreferrer" className="btn-secondary text-xs py-1.5 px-3 flex items-center">
+                                                                    <Eye size={14} className="mr-1" /> Preview Layout
+                                                                </a>
+                                                                <a href={`/diklatsar/${v.id}/certificate`} target="_blank" rel="noreferrer" className="btn-success text-xs py-1.5 px-3 flex items-center">
+                                                                    <Printer size={14} className="mr-1" /> Cetak PDF
+                                                                </a>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button disabled className="btn-secondary text-xs py-1.5 px-3 flex items-center opacity-50 cursor-not-allowed" title="Akses Terbatas">
+                                                                    <Eye size={14} className="mr-1" /> Preview Layout
+                                                                </button>
+                                                                <button disabled className="bg-gray-100 text-gray-400 border border-gray-200 rounded-lg text-xs py-1.5 px-3 flex items-center cursor-not-allowed" title="Akses Terbatas">
+                                                                    <Printer size={14} className="mr-1" /> Cetak PDF
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </td>

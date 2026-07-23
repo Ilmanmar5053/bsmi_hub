@@ -14,23 +14,47 @@ interface Props {
 
 export function FlashMessage({ flash, onClose }: Props) {
     const [visible, setVisible] = React.useState(true);
+    const [isFadingOut, setIsFadingOut] = React.useState(false);
+
+    React.useEffect(() => {
+        if (flash.success || flash.error) {
+            setVisible(true);
+            setIsFadingOut(false);
+            
+            // Auto hide after 20 seconds
+            const timer = setTimeout(() => {
+                setIsFadingOut(true);
+                setTimeout(() => {
+                    setVisible(false);
+                    onClose?.();
+                }, 500); // Wait for fade-out animation to finish
+            }, 20000);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [flash]);
 
     if (!visible || (!flash.success && !flash.error)) return null;
 
     const isSuccess = !!flash.success;
     return (
-        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-4 text-sm ${
+        <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-xl shadow-lg border text-sm max-w-sm w-full ${
+            isFadingOut ? 'animate-fade-out' : 'animate-bounce-in-right'
+        } ${
             isSuccess
-                ? 'bg-green-50 border border-green-200 text-green-800'
-                : 'bg-red-50 border border-red-200 text-red-800'
+                ? 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-800 text-green-800 dark:text-green-400'
+                : 'bg-white dark:bg-gray-800 border-red-200 dark:border-red-800 text-red-800 dark:text-red-400'
         }`}>
-            {isSuccess ? <CheckCircle size={16} className="flex-shrink-0" /> : <XCircle size={16} className="flex-shrink-0" />}
-            <span className="flex-1">{flash.success || flash.error}</span>
+            {isSuccess ? <CheckCircle size={20} className="flex-shrink-0 text-green-500" /> : <XCircle size={20} className="flex-shrink-0 text-red-500" />}
+            <span className="flex-1 font-medium">{flash.success || flash.error}</span>
             <button
-                onClick={() => { setVisible(false); onClose?.(); }}
-                className="flex-shrink-0 hover:opacity-70 transition-opacity"
+                onClick={() => { 
+                    setIsFadingOut(true); 
+                    setTimeout(() => { setVisible(false); onClose?.(); }, 500); 
+                }}
+                className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
-                <X size={14} />
+                <X size={16} />
             </button>
         </div>
     );
@@ -43,24 +67,59 @@ interface StatCardProps {
     iconBg: string;
     subtitle?: string;
     trend?: { value: string; positive: boolean };
+    compact?: boolean;
 }
 
-export function StatCard({ title, value, icon, iconBg, subtitle, trend }: StatCardProps) {
+export function StatCard({ title, value, icon, iconBg, subtitle, trend, compact = false }: StatCardProps) {
+    // Extract color from iconBg (e.g. 'bg-blue-100' -> 'blue')
+    const colorMatch = iconBg.match(/bg-(\w+)-/);
+    const color = colorMatch ? colorMatch[1] : 'gray';
+
+    const gradientMap: Record<string, string> = {
+        blue:   'from-blue-50 to-blue-100/60 dark:from-blue-950/40 dark:to-blue-900/20',
+        green:  'from-emerald-50 to-emerald-100/60 dark:from-emerald-950/40 dark:to-emerald-900/20',
+        purple: 'from-purple-50 to-purple-100/60 dark:from-purple-950/40 dark:to-purple-900/20',
+        orange: 'from-orange-50 to-orange-100/60 dark:from-orange-950/40 dark:to-orange-900/20',
+        red:    'from-red-50 to-red-100/60 dark:from-red-950/40 dark:to-red-900/20',
+        yellow: 'from-amber-50 to-amber-100/60 dark:from-amber-950/40 dark:to-amber-900/20',
+        teal:   'from-teal-50 to-teal-100/60 dark:from-teal-950/40 dark:to-teal-900/20',
+        indigo: 'from-indigo-50 to-indigo-100/60 dark:from-indigo-950/40 dark:to-indigo-900/20',
+    };
+
+    const borderMap: Record<string, string> = {
+        blue:   'border-blue-200/60 dark:border-blue-800/30',
+        green:  'border-emerald-200/60 dark:border-emerald-800/30',
+        purple: 'border-purple-200/60 dark:border-purple-800/30',
+        orange: 'border-orange-200/60 dark:border-orange-800/30',
+        red:    'border-red-200/60 dark:border-red-800/30',
+        yellow: 'border-amber-200/60 dark:border-amber-800/30',
+        teal:   'border-teal-200/60 dark:border-teal-800/30',
+        indigo: 'border-indigo-200/60 dark:border-indigo-800/30',
+    };
+
+    const gradient = gradientMap[color] || gradientMap.blue;
+    const border = borderMap[color] || borderMap.blue;
+
     return (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 hover:shadow-md transition-shadow duration-200">
-            <div className="flex items-start justify-between">
-                <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{title}</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
-                    {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+        <div className={`relative overflow-hidden rounded-xl ${compact ? 'p-3' : 'p-4'} bg-gradient-to-br ${gradient} border ${border} hover:shadow-md transition-all duration-300 group`}>
+            {/* Large transparent background icon */}
+            <div className={`absolute ${compact ? '-right-2 -bottom-2' : '-right-3 -bottom-3'} opacity-[0.07] group-hover:opacity-[0.12] transition-opacity duration-300 transform group-hover:scale-110`}>
+                {React.cloneElement(icon as React.ReactElement, { size: compact ? 60 : 80, strokeWidth: 1.5 })}
+            </div>
+
+            <div className="relative z-10 flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                    <p className={`text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider mb-1`}>{title}</p>
+                    <p className={`${compact ? 'text-lg sm:text-xl' : 'text-2xl'} font-extrabold text-gray-800 dark:text-white leading-tight`}>{value}</p>
+                    {subtitle && <p className="text-[10px] sm:text-xs text-gray-400 mt-1">{subtitle}</p>}
                     {trend && (
-                        <p className={`text-xs font-medium mt-1 ${trend.positive ? 'text-green-600' : 'text-red-500'}`}>
+                        <p className={`text-xs font-semibold mt-1 ${trend.positive ? 'text-emerald-600' : 'text-red-500'}`}>
                             {trend.positive ? '↑' : '↓'} {trend.value}
                         </p>
                     )}
                 </div>
-                <div className={`w-12 h-12 rounded-xl ${iconBg} flex items-center justify-center`}>
-                    {icon}
+                <div className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-lg ${iconBg} dark:bg-opacity-20 flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                    {React.cloneElement(icon as React.ReactElement, { size: compact ? 16 : 20 })}
                 </div>
             </div>
         </div>

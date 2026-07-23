@@ -3,6 +3,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { StatusBadge, Modal, SearchInput, formatRupiah, EmptyState } from '@/Components/Shared';
 import { Plus, Edit, Trash2, Heart } from 'lucide-react';
+import { confirmAction } from '@/Utils/swal';
 
 interface Beneficiary {
     id: number;
@@ -51,8 +52,8 @@ export default function BeneficiariesIndex({ beneficiaries, filters }: Props) {
         router.get('/beneficiaries', { search, category: categoryFilter }, { preserveState: true });
     };
 
-    const handleDelete = (id: number) => {
-        if (confirm('Yakin ingin menghapus data penerima manfaat ini?')) {
+    const handleDelete = async (id: number) => {
+        if (await confirmAction('Yakin ingin menghapus data penerima manfaat ini?')) {
             router.delete(`/beneficiaries/${id}`);
         }
     };

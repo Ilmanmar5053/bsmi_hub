@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Head, useForm, router, usePage, Link } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { StatusBadge, Modal, formatDate, EmptyState } from '@/Components/Shared';
-import { Plus, Package, ArrowRightLeft, Edit, Trash2, FileText } from 'lucide-react';
+import { Plus, Package, ArrowRightLeft, Edit, Trash2, FileText, ArrowUpDown, ArrowUp, ArrowDown, Car } from 'lucide-react';
+import { confirmAction } from '@/Utils/swal';
 
 interface LogisticsItem {
     id: number;
@@ -32,12 +33,20 @@ interface LogisticsTransaction {
 interface Props {
     items: { data: LogisticsItem[]; meta?: any };
     recentTransactions: LogisticsTransaction[];
+    filters: { search?: string; category?: string; sort_by?: string; sort_direction?: string; };
+    programs: { id: number; title: string }[];
+    vehicles: any[];
 }
 
-export default function LogisticsIndex({ items, recentTransactions }: Props) {
+export default function LogisticsIndex({ items, recentTransactions, filters, programs, vehicles = [] }: Props) {
     const { props } = usePage<any>();
     const roles = props.auth?.roles || [];
     const canEdit = !roles.includes('anggota') && !roles.includes('relawan');
+
+    const [search, setSearch] = useState(filters.search || '');
+    const [categoryFilter, setCategoryFilter] = useState(filters.category || '');
+    const [sortBy, setSortBy] = useState(filters.sort_by || 'name');
+    const [sortDir, setSortDir] = useState(filters.sort_direction || 'asc');
 
     const [isAddItemOpen, setIsAddItemOpen] = useState(false);
     const [isAddTxOpen, setIsAddTxOpen] = useState(false);
@@ -50,6 +59,26 @@ export default function LogisticsIndex({ items, recentTransactions }: Props) {
     const formTx = useForm({
         logistics_item_id: '', type: 'masuk', quantity: '', date: '', source_destination: '', notes: ''
     });
+
+    const handleSort = (column: string) => {
+        let newDir = 'asc';
+        if (sortBy === column) {
+            newDir = sortDir === 'asc' ? 'desc' : 'asc';
+        }
+        setSortBy(column);
+        setSortDir(newDir);
+        router.get('/logistics', { search, category: categoryFilter, sort_by: column, sort_direction: newDir }, { preserveState: true });
+    };
+
+    const handleSearch = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        router.get('/logistics', { search, category: categoryFilter, sort_by: sortBy, sort_direction: sortDir }, { preserveState: true });
+    };
+
+    const SortIcon = ({ column }: { column: string }) => {
+        if (sortBy !== column) return <ArrowUpDown size={14} className="text-gray-400 inline ml-1 opacity-50" />;
+        return sortDir === 'asc' ? <ArrowUp size={14} className="text-theme-600 inline ml-1" /> : <ArrowDown size={14} className="text-theme-600 inline ml-1" />;
+    };
 
     const handleEditItem = (item: any) => {
         formItem.setData({
@@ -100,8 +129,8 @@ export default function LogisticsIndex({ items, recentTransactions }: Props) {
         formTx.post('/logistics/transaction', { onSuccess: () => { setIsAddTxOpen(false); formTx.reset(); } });
     };
 
-    const handleDelete = (id: number) => {
-        if (confirm('Hapus barang ini? Semua transaksi terkait akan terhapus juga.')) {
+    const handleDelete = async (id: number) => {
+        if (await confirmAction('Hapus barang ini? Semua transaksi terkait akan terhapus juga.')) {
             router.delete(`/logistics/${id}`);
         }
     };
@@ -110,24 +139,71 @@ export default function LogisticsIndex({ items, recentTransactions }: Props) {
         <AppLayout>
             <Head title="Logistik & Inventaris" />
 
-            <div className="page-header">
+            <div className="page-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="page-title">Logistik & Inventaris</h1>
-                    <p className="page-subtitle">Kelola stok barang dan bantuan.</p>
+                    <h1 className="page-title">Manajemen Logistik</h1>
+                    <p className="page-subtitle">Kelola persediaan obat-obatan, peralatan, logistik operasional, dan riwayat mutasi barang.</p>
                 </div>
                 <div className="flex gap-2">
                     {canEdit && (
                         <>
                             <button onClick={() => setIsAddTxOpen(true)} className="btn-secondary">
-                                <ArrowRightLeft size={16} /> Transaksi
+                                <ArrowRightLeft size={18} /> Transaksi
                             </button>
                             <button onClick={handleOpenAddItem} className="btn-primary">
-                                <Plus size={16} /> Tambah Barang
+                                <Plus size={18} /> Tambah Barang
                             </button>
                         </>
                     )}
                 </div>
             </div>
+
+            {/* Dashboard Status Kendaraan */}
+            {vehicles.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+                    {vehicles.map(vehicle => {
+                        const activeUsage = vehicle.vehicle_usages?.[0];
+                        const isReady = !activeUsage;
+
+                        return (
+                            <div key={vehicle.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col justify-between">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${isReady ? 'bg-green-50 text-green-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                                            <Car size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900 text-sm">{vehicle.nama_barang}</h3>
+                                            <p className="text-xs text-gray-500">{vehicle.tipe_model || 'Tidak ada tipe'}</p>
+                                        </div>
+                                    </div>
+                                    <span className={`px-2 py-1 text-[10px] font-semibold rounded-full whitespace-nowrap ${
+                                        isReady ? 'bg-green-100 text-green-700' : 
+                                        activeUsage?.status === 'Diajukan' ? 'bg-yellow-100 text-yellow-700' : 
+                                        activeUsage?.status === 'Disetujui' ? 'bg-blue-100 text-blue-700' :
+                                        activeUsage?.status === 'Menunggu Pengecekan' ? 'bg-purple-100 text-purple-700' :
+                                        'bg-indigo-100 text-indigo-700'
+                                    }`}>
+                                        {isReady ? 'Ready / Standby' : activeUsage?.status}
+                                    </span>
+                                </div>
+                                
+                                {activeUsage ? (
+                                    <div className="text-xs text-gray-600 space-y-2 bg-gray-50/50 p-3 rounded-lg border border-gray-100/60">
+                                        <div className="flex"><span className="text-gray-400 w-16">Oleh:</span> <span className="font-medium text-gray-800">{activeUsage.pic_pemakai}</span></div>
+                                        <div className="flex"><span className="text-gray-400 w-16">Tujuan:</span> <span className="truncate" title={activeUsage.tujuan}>{activeUsage.tujuan}</span></div>
+                                        <div className="flex"><span className="text-gray-400 w-16">Jadwal:</span> <span className="truncate">{activeUsage.tanggal_mulai.substring(0, 16).replace('T', ' ')} s/d {activeUsage.tanggal_selesai?.substring(0, 16).replace('T', ' ') || '-'}</span></div>
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-gray-500 bg-green-50/30 p-3 rounded-lg border border-green-50 border-dashed text-center flex items-center justify-center h-[76px]">
+                                        Kendaraan tersedia dan siap digunakan.
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Tabs */}
             <div className="flex space-x-1 border-b border-gray-200 dark:border-gray-700 mb-6">
@@ -149,9 +225,9 @@ export default function LogisticsIndex({ items, recentTransactions }: Props) {
                         <table className="data-table">
                             <thead className="sticky top-0 z-10">
                                 <tr>
-                                    <th>Barang</th>
-                                    <th>Stok</th>
-                                    <th>Kondisi</th>
+                                    <th onClick={() => handleSort('name')} className="cursor-pointer hover:bg-gray-100 transition-colors">Barang <SortIcon column="name" /></th>
+                                    <th onClick={() => handleSort('quantity')} className="cursor-pointer hover:bg-gray-100 transition-colors">Stok <SortIcon column="quantity" /></th>
+                                    <th onClick={() => handleSort('condition')} className="cursor-pointer hover:bg-gray-100 transition-colors">Kondisi <SortIcon column="condition" /></th>
                                     <th className="text-right">Aksi</th>
                                 </tr>
                             </thead>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Beneficiary;
 use App\Models\LogisticsItem;
+use App\Models\Asset;
 use App\Models\LogisticsTransaction;
 use App\Models\Program;
 use Illuminate\Http\RedirectResponse;
@@ -16,7 +17,9 @@ class LogisticsController extends Controller
 {
     public function index(Request $request): Response
     {
-        $filters = $request->only(['search', 'category']);
+        $filters = $request->only(['search', 'category', 'sort_by', 'sort_direction']);
+        $sortBy = $filters['sort_by'] ?? 'name';
+        $sortDirection = $filters['sort_direction'] ?? 'asc';
 
         $items = LogisticsItem::query()
             ->when($filters['search'] ?? null, fn($q, $v) =>
@@ -24,7 +27,8 @@ class LogisticsController extends Controller
                   ->orWhere('location', 'like', "%{$v}%")
             )
             ->when($filters['category'] ?? null, fn($q, $v) => $q->where('category', $v))
-            ->orderBy('name')
+            ->orderBy($sortBy, $sortDirection)
+            ->when($sortBy !== 'id', fn($q) => $q->orderBy('id', 'desc'))
             ->paginate(15)
             ->withQueryString()
             ->through(fn($item) => [
@@ -61,11 +65,20 @@ class LogisticsController extends Controller
         $beneficiaries = Beneficiary::orderBy('name')->get(['id', 'name']);
         $programs      = Program::where('status', 'ongoing')->orderBy('title')->get(['id', 'title']);
 
+        $vehicles = Asset::where('kategori_barang', 'like', '%kendaraan%')
+                         ->orWhere('kategori_barang', 'like', '%mobil%')
+                         ->orWhere('kategori_barang', 'like', '%ambulance%')
+                         ->with(['vehicleUsages' => function($q) {
+                             $q->whereIn('status', ['Diajukan', 'Disetujui', 'Sedang Dipakai', 'Menunggu Pengecekan']);
+                         }])
+                         ->get();
+
         return Inertia::render('Logistics/Index', [
             'items'              => $items,
             'recentTransactions' => $recentTransactions,
             'beneficiaries'      => $beneficiaries,
             'programs'           => $programs,
+            'vehicles'           => $vehicles,
             'filters'            => $filters,
         ]);
     }

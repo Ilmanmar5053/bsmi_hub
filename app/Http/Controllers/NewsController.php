@@ -93,11 +93,32 @@ class NewsController extends Controller
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'category' => 'required|string',
-            'images' => 'nullable|array',
+            'images' => 'nullable|array|max:5',
+            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
         
         if ($request->title !== $news->title) {
             $validated['slug'] = Str::slug($validated['title']) . '-' . uniqid();
+        }
+
+        if ($request->hasFile('images')) {
+            $imagePaths = [];
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('gallery-berita', 'public');
+                $imagePaths[] = '/storage/' . $path;
+            }
+            $validated['images'] = $imagePaths;
+            
+            // Optionally delete old images here if needed
+            if (!empty($news->images)) {
+                foreach ($news->images as $oldImage) {
+                    $oldPath = str_replace('/storage/', '', $oldImage);
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+        } else {
+            // Keep existing images if no new files are uploaded
+            unset($validated['images']);
         }
 
         $news->update($validated);

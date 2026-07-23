@@ -16,11 +16,13 @@ class UserController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->get('search', '');
+        $sortBy = $request->get('sort_by', 'name');
+        $sortDir = $request->get('sort_dir', 'asc');
 
         $users = User::with('roles')
             ->when($search, fn ($q) => $q->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%"))
-            ->orderBy('name')
+            ->orderBy($sortBy, $sortDir)
             ->paginate(15)
             ->withQueryString()
             ->through(fn ($u) => [
@@ -39,7 +41,11 @@ class UserController extends Controller
             'users'       => $users,
             'roles'       => $roles,
             'permissions' => $permissions,
-            'filters'     => ['search' => $search],
+            'filters'     => [
+                'search' => $search,
+                'sort_by' => $sortBy,
+                'sort_dir' => $sortDir
+            ],
         ]);
     }
 

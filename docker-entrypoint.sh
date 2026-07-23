@@ -35,5 +35,11 @@ php artisan config:cache || echo "Config cache failed"
 php artisan route:cache || echo "Route cache failed"
 php artisan view:cache || echo "View cache failed"
 
+echo "Ensuring only prefork MPM is loaded..."
+rm -f /etc/apache2/mods-enabled/mpm_event.conf
+rm -f /etc/apache2/mods-enabled/mpm_event.load
+rm -f /etc/apache2/mods-enabled/mpm_worker.conf
+rm -f /etc/apache2/mods-enabled/mpm_worker.load
+
 echo "Starting Apache..."
 exec "$@"

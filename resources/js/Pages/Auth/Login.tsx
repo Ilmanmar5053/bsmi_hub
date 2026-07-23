@@ -2,17 +2,22 @@ import React from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { Stethoscope, Lock, Mail, Eye, EyeOff, Shield } from 'lucide-react';
 import { Modal } from '@/Components/Shared';
+import { X } from 'lucide-react';
 
 interface Props {
     canResetPassword: boolean;
     status?: string;
+    announcement?: any;
 }
 
-export default function Login({ canResetPassword, status }: Props) {
+export default function Login({ canResetPassword, status, announcement }: Props) {
     const { props } = usePage<any>();
     const organization = props.organization;
     const [showPassword, setShowPassword] = React.useState(false);
     const [isForgotModalOpen, setIsForgotModalOpen] = React.useState(false);
+    const [showAnnouncement, setShowAnnouncement] = React.useState(
+        !!announcement && !!announcement.images && announcement.images.length > 0
+    );
     const [loginRole, setLoginRole] = React.useState<'administrator' | 'anggota' | 'relawan'>('administrator');
     const [currentSlide, setCurrentSlide] = React.useState(1);
     const totalSlides = 5;
@@ -70,7 +75,7 @@ export default function Login({ canResetPassword, status }: Props) {
     };
 
     return (
-        <div className="min-h-screen flex">
+        <div className="h-[100dvh] w-full flex overflow-hidden">
             <Head title="BSMI | Care For Life" />
 
             {/* Left: Decorative Panel with Gallery Slideshow */}
@@ -109,9 +114,9 @@ export default function Login({ canResetPassword, status }: Props) {
 
                 <div className="relative z-10 text-center text-white">
                     {/* Logo */}
-                    <div className="w-24 h-24 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center mx-auto mb-8 shadow-2xl overflow-hidden p-4">
+                    <div className="w-24 h-24 rounded-2xl bg-white flex items-center justify-center mx-auto mb-8 shadow-xl overflow-hidden ring-1 ring-black/5">
                         {organization?.logo_url ? (
-                            <img src={organization.logo_url} alt="Logo" className="w-full h-full object-contain drop-shadow-md" />
+                            <img src={organization.logo_url} alt="Logo" className="w-full h-full object-contain" />
                         ) : (
                             <Stethoscope size={48} className="text-white" />
                         )}
@@ -214,19 +219,19 @@ export default function Login({ canResetPassword, status }: Props) {
             </div>
 
             {/* Right: Login Form */}
-            <div className={`flex-1 flex flex-col items-center justify-center p-8 relative overflow-hidden bg-gradient-to-br ${activeTheme.bgSoft} transition-colors duration-700`}>
+            <div className={`flex-1 flex flex-col items-center justify-center p-6 sm:p-8 relative overflow-y-auto bg-gradient-to-br ${activeTheme.bgSoft} transition-colors duration-700`}>
                 
-                {/* Palestine Map Background (Soft Gray Gradient) */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none transition-opacity duration-700">
-                    <svg viewBox="0 0 350 850" className="w-full h-full max-h-[85vh] object-contain drop-shadow-2xl">
+                {/* Palestine Map Background (Emerald Green Gradient) */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none transition-opacity duration-700 p-8">
+                    <svg viewBox="0 0 350 850" className="w-full h-full object-contain drop-shadow-xl">
                         <defs>
                             <linearGradient id="palestine-map-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#e2e8f0" />
-                                <stop offset="50%" stopColor="#cbd5e1" />
-                                <stop offset="100%" stopColor="#94a3b8" />
+                                <stop offset="0%" stopColor="#34d399" />
+                                <stop offset="50%" stopColor="#10b981" />
+                                <stop offset="100%" stopColor="#059669" />
                             </linearGradient>
                             <filter id="glow">
-                                <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+                                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
                                 <feMerge>
                                     <feMergeNode in="coloredBlur"/>
                                     <feMergeNode in="SourceGraphic"/>
@@ -238,7 +243,7 @@ export default function Login({ canResetPassword, status }: Props) {
                             d="M174.6,33.5 L211.2,12.1 C211.2,12.1 234.5,49.2 248.3,77.5 C262.1,105.8 288.6,183.1 288.6,183.1 L298.1,232.7 C298.1,232.7 284.4,265.5 284.4,265.5 L263.3,371.6 C263.3,371.6 242.2,423.8 242.2,423.8 L257,440.6 L265.5,537.4 L251.7,532.7 C251.7,532.7 220,629.5 210.5,651.8 L204.2,746.5 L190.4,736 L154.5,827 L114.3,835 L116.5,798 L85.8,771 C85.8,771 161.9,644 196.8,574 C231.7,504 290.7,314.1 290.7,314.1 L257.5,257.5 C257.5,257.5 220.3,165 197.1,114.4 C173.9,63.8 174.6,33.5 174.6,33.5 Z" 
                             fill="url(#palestine-map-gradient)"
                             filter="url(#glow)"
-                            transform="translate(-40, 0) scale(1.1)"
+                            transform="translate(-40, 0) scale(1.05)"
                         />
                     </svg>
                 </div>
@@ -246,19 +251,24 @@ export default function Login({ canResetPassword, status }: Props) {
                 <div className="relative z-10 w-full max-w-md">
                     {/* Free Palestine Badge */}
                     <div className="flex justify-center mb-6">
-                        <div className="inline-flex items-center gap-3 bg-white/60 backdrop-blur-md border border-white/40 shadow-sm px-4 py-2 rounded-full text-sm font-bold text-gray-800">
-                            <div className="w-8 h-5 rounded-sm overflow-hidden flex flex-col relative shadow-sm">
+                        <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-md border border-white/40 shadow-sm px-4 py-2 rounded-full text-sm font-bold text-gray-800">
+                            <div className="w-6 h-4 rounded-sm overflow-hidden flex flex-col relative shadow-sm shrink-0">
                                 <div className="h-1/3 bg-black"></div>
                                 <div className="h-1/3 bg-white"></div>
                                 <div className="h-1/3 bg-[#009736]"></div>
-                                <div className="absolute left-0 top-0 bottom-0 w-0 h-0 border-y-[10px] border-y-transparent border-l-[12px] border-l-[#EE2A35]"></div>
+                                <div className="absolute left-0 top-0 bottom-0 w-0 h-0 border-y-[8px] border-y-transparent border-l-[10px] border-l-[#EE2A35]"></div>
                             </div>
-                            Free Palestine
+                            <span>Free Palestine, From</span>
+                            <div className="w-6 h-4 rounded-sm overflow-hidden flex flex-col shadow-sm shrink-0">
+                                <div className="h-1/2 bg-[#ff0000]"></div>
+                                <div className="h-1/2 bg-white"></div>
+                            </div>
+                            <span>Indonesia</span>
                         </div>
                     </div>
                     {/* Mobile logo */}
                     <div className="lg:hidden flex items-center gap-3 mb-8">
-                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-lg overflow-hidden p-2 border border-gray-100">
+                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-md overflow-hidden ring-1 ring-black/5">
                             {organization?.logo_url ? (
                                 <img src={organization.logo_url} alt="Logo" className="w-full h-full object-contain" />
                             ) : (
@@ -273,7 +283,7 @@ export default function Login({ canResetPassword, status }: Props) {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-3xl shadow-xl p-8">
+                    <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/60">
                         <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-xl">
                             <button type="button" onClick={() => setLoginRole('administrator')} className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${loginRole === 'administrator' ? 'bg-white shadow-sm text-red-600' : 'text-gray-500 hover:text-gray-700'}`}>Admin</button>
                             <button type="button" onClick={() => setLoginRole('anggota')} className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${loginRole === 'anggota' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>Anggota</button>
@@ -453,6 +463,44 @@ export default function Login({ canResetPassword, status }: Props) {
                     </button>
                 </div>
             </Modal>
+
+            {/* Announcement Popup */}
+            {showAnnouncement && (
+                <>
+                <style>
+                    {`
+                    @keyframes smoothFloat {
+                        0%, 100% { transform: translateY(0); }
+                        50% { transform: translateY(-15px); }
+                    }
+                    .animate-smooth-float {
+                        animation: smoothFloat 4s ease-in-out infinite;
+                    }
+                    `}
+                </style>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowAnnouncement(false)}>
+                    <div className="w-full max-w-md animate-smooth-float">
+                        <div 
+                            className="relative w-full bg-transparent rounded-2xl overflow-hidden shadow-2xl animate-scale-up"
+                            style={{ aspectRatio: '4/5' }}
+                            onClick={(e) => e.stopPropagation()} // prevent closing when clicking the image
+                        >
+                        <button 
+                            onClick={() => setShowAnnouncement(false)}
+                            className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition-colors backdrop-blur-md"
+                        >
+                            <X size={20} />
+                        </button>
+                        <img 
+                            src={announcement.images[0]} 
+                            alt={announcement.title || 'Pengumuman'}
+                            className="w-full h-full object-cover"
+                        />
+                        </div>
+                    </div>
+                </div>
+                </>
+            )}
         </div>
     );
 }

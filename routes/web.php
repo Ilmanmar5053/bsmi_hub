@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DuesController;
 use App\Http\Controllers\ExecutiveController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\LogisticsController;
 use App\Http\Controllers\DeliveryNoteController;
 use App\Http\Controllers\MemberController;
@@ -14,6 +15,10 @@ use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VolunteerController;
+use App\Http\Controllers\VehicleUsageController;
+use App\Http\Controllers\DonationController;
+use App\Http\Controllers\PublicDonationController;
+use App\Http\Controllers\HelpdeskController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +49,11 @@ Route::get('/daftar-relawan', [VolunteerController::class, 'register'])
 Route::post('/daftar-relawan', [VolunteerController::class, 'submitRegistration'])
     ->name('volunteers.register.submit');
 
+Route::get('/konfirmasi-donasi', [PublicDonationController::class, 'create'])
+    ->name('donations.public.create');
+Route::post('/konfirmasi-donasi', [PublicDonationController::class, 'store'])
+    ->name('donations.public.store');
+
 // ─── Profile Routes (Breeze – auth required) ──────────────────────────────────
 
 Route::middleware('auth')->group(function () {
@@ -65,87 +75,93 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ─── Permission Protected Routes ───────────────────────────────────────────
     
     // Members
-    Route::middleware(['permission:manage-members'])->group(function () {
+    Route::middleware(['permission:menu-members'])->group(function () {
         Route::post('/members/{member}/create-account', [MemberController::class, 'createAccount'])->name('members.create-account');
         Route::post('/members/{member}/reset-password', [MemberController::class, 'resetPassword'])->name('members.reset-password');
         Route::patch('/members/{member}/toggle-status', [MemberController::class, 'toggleStatus'])->name('members.toggle-status');
-        Route::resource('members', MemberController::class)->except(['index', 'show']);
-    });
-    Route::middleware(['permission:manage-members|view-members'])->group(function () {
         Route::get('/members/export', [MemberController::class, 'exportExcel'])->name('members.export');
-        Route::resource('members', MemberController::class)->only(['index', 'show']);
+        Route::resource('members', MemberController::class);
     });
 
     // Executives
-    Route::middleware(['permission:manage-executives'])->group(function () {
+    Route::middleware(['permission:menu-executives'])->group(function () {
         Route::resource('executives', ExecutiveController::class);
     });
 
     // Beneficiaries
-    Route::middleware(['permission:manage-beneficiaries'])->group(function () {
+    Route::middleware(['permission:menu-beneficiaries'])->group(function () {
         Route::resource('beneficiaries', BeneficiaryController::class);
     });
 
-    // Programs (Full access for managing)
-    Route::middleware(['permission:manage-programs'])->group(function () {
+    // Programs
+    Route::middleware(['permission:menu-programs'])->group(function () {
         Route::resource('programs', ProgramController::class)->except(['index', 'show']);
     });
 
-    // News (Full access for managing)
-    Route::middleware(['permission:manage-news'])->group(function () {
+    // News
+    Route::middleware(['permission:menu-news'])->group(function () {
         Route::resource('news', NewsController::class)->except(['index', 'show']);
     });
 
     // Logistics & Delivery Notes
-    Route::middleware(['permission:manage-logistics'])->group(function () {
+    Route::middleware(['permission:menu-logistics'])->group(function () {
         Route::post('/logistics/transaction', [LogisticsController::class, 'storeTransaction'])->name('logistics.transaction.store');
-        Route::resource('logistics', LogisticsController::class)->except(['index', 'show']);
-        Route::resource('delivery-notes', DeliveryNoteController::class)->except(['index', 'show']);
+        Route::resource('logistics', LogisticsController::class);
+        Route::resource('delivery-notes', DeliveryNoteController::class);
     });
-    Route::middleware(['permission:manage-logistics|view-logistics'])->group(function () {
-        Route::resource('logistics', LogisticsController::class)->only(['index', 'show']);
-        Route::resource('delivery-notes', DeliveryNoteController::class)->only(['index', 'show']);
+    
+    // Asset Management
+    Route::middleware(['permission:menu-assets'])->group(function () {
+        Route::resource('assets', \App\Http\Controllers\AssetController::class);
+    });
+
+    // Vehicle Usages
+    Route::middleware(['permission:menu-vehicle-usages'])->group(function () {
+        Route::resource('vehicle-usages', VehicleUsageController::class)->except(['create', 'show', 'edit']);
+        Route::get('/vehicle-usages', [VehicleUsageController::class, 'index'])->name('vehicle-usages.index');
     });
 
     // Dues
-    Route::middleware(['permission:manage-dues'])->group(function () {
+    Route::middleware(['permission:menu-dues'])->group(function () {
         Route::post('/dues/{payment}/pay', [DuesController::class, 'markPaid'])->name('dues.pay');
         Route::post('/dues/{payment}/unpay', [DuesController::class, 'markUnpaid'])->name('dues.unpay');
-        Route::resource('dues', DuesController::class)->except(['index', 'show']);
-    });
-    Route::middleware(['permission:manage-dues|view-dues'])->group(function () {
-        Route::resource('dues', DuesController::class)->only(['index', 'show']);
+        Route::resource('dues', DuesController::class);
     });
 
-    // Finance
-    Route::middleware(['permission:manage-finance'])->group(function () {
-        Route::resource('finance', FinanceController::class)->except(['index', 'show']);
-    });
-    Route::middleware(['permission:manage-finance|view-finance'])->group(function () {
+    // Finance & Bank Accounts
+    Route::middleware(['permission:menu-finance'])->group(function () {
         Route::get('/finance/export', [FinanceController::class, 'exportExcel'])->name('finance.export');
-        Route::resource('finance', FinanceController::class)->only(['index', 'show']);
+        Route::get('/finance/template', [FinanceController::class, 'downloadTemplate'])->name('finance.template');
+        Route::post('/finance/import', [FinanceController::class, 'importExcel'])->name('finance.import');
+        Route::resource('finance', FinanceController::class);
+        
+        Route::post('/finance/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
+        Route::put('/finance/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
+        Route::delete('/finance/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
+    });
+
+    // Donations
+    Route::middleware(['permission:menu-donations'])->group(function () {
+        Route::resource('donations', DonationController::class)->except(['create', 'store', 'edit']);
     });
 
     // Volunteers
-    Route::middleware(['permission:manage-volunteers'])->group(function () {
+    Route::middleware(['permission:menu-volunteers'])->group(function () {
+        Route::get('/volunteers/export', [VolunteerController::class, 'export'])->name('volunteers.export');
         Route::patch('/volunteers/{volunteer}/approve', [VolunteerController::class, 'approve'])->name('volunteers.approve');
         Route::patch('/volunteers/{volunteer}/reject', [VolunteerController::class, 'reject'])->name('volunteers.reject');
         Route::post('/volunteers/{volunteer}/create-account', [VolunteerController::class, 'createAccount'])->name('volunteers.create-account');
         Route::post('/volunteers/{volunteer}/reset-password', [VolunteerController::class, 'resetPassword'])->name('volunteers.reset-password');
-        Route::resource('volunteers', VolunteerController::class)->except(['index', 'show']);
-
-        // Diklatsar Management
+        Route::resource('volunteers', VolunteerController::class);
+    });
+    
+    // Diklatsar Management
+    Route::middleware(['permission:menu-diklatsar'])->group(function () {
+        Route::get('/diklatsar', [\App\Http\Controllers\DiklatsarController::class, 'index'])->name('diklatsar.index');
+        Route::post('/diklatsar/bulk-advance', [\App\Http\Controllers\DiklatsarController::class, 'bulkAdvance'])->name('diklatsar.bulk-advance');
         Route::patch('/diklatsar/{volunteer}/advance', [\App\Http\Controllers\DiklatsarController::class, 'advance'])->name('diklatsar.advance');
         Route::patch('/diklatsar/modules/{module}', [\App\Http\Controllers\DiklatsarController::class, 'updateModule'])->name('diklatsar.update-module');
         Route::put('/diklatsar/certificate-setting', [\App\Http\Controllers\DiklatsarController::class, 'updateCertificateSetting'])->name('diklatsar.update-certificate-setting');
-    });
-    
-    Route::middleware(['permission:manage-volunteers|view-volunteers'])->group(function () {
-        Route::get('/volunteers/export', [VolunteerController::class, 'export'])->name('volunteers.export');
-        Route::resource('volunteers', VolunteerController::class)->only(['index', 'show']);
-        
-        // Diklatsar Routes
-        Route::get('/diklatsar', [\App\Http\Controllers\DiklatsarController::class, 'index'])->name('diklatsar.index');
     });
 
     Route::get('/diklatsar/{volunteer}/certificate', [\App\Http\Controllers\DiklatsarController::class, 'certificate'])
@@ -154,20 +170,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('diklatsar.certificate.preview');
 
     // Organization Profile
-    Route::middleware(['permission:view-organization'])->group(function () {
+    Route::middleware(['permission:menu-organization'])->group(function () {
         Route::get('/profil-organisasi', [OrganizationProfileController::class, 'show'])->name('profil-organisasi.show');
-        Route::put('/profil-organisasi', [OrganizationProfileController::class, 'update'])->name('profil-organisasi.update');
+        Route::post('/profil-organisasi', [OrganizationProfileController::class, 'update'])->name('profil-organisasi.update');
+        Route::post('/profil-organisasi/regional-logos', [OrganizationProfileController::class, 'updateRegionalLogos'])->name('profil-organisasi.updateRegionalLogos');
     });
 
     // User Management
-    Route::middleware(['permission:manage-users'])->group(function () {
+    Route::middleware(['permission:menu-users'])->group(function () {
         Route::resource('users', UserController::class)->except(['show', 'create', 'edit']);
+    });
+    
+    // Activity Logs
+    Route::middleware(['permission:menu-activity-logs'])->group(function () {
+        Route::get('/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index'])->name('activity-logs.index');
     });
 
     // Reports (Pelaporan)
-    Route::middleware(['permission:view-reports|export-reports'])->group(function () {
+    Route::middleware(['permission:menu-reports'])->group(function () {
         Route::get('/reports', [\App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export/{type}', [\App\Http\Controllers\ReportController::class, 'export'])->name('reports.export');
+    });
+
+    // Helpdesk Support
+    Route::get('/helpdesk', [HelpdeskController::class, 'index'])->name('helpdesk.index');
+    Route::post('/helpdesk', [HelpdeskController::class, 'store'])->name('helpdesk.store');
+    
+    // Helpdesk Support (Admin)
+    Route::middleware(['permission:menu-helpdesk-manage'])->group(function () {
+        Route::get('/helpdesk/manage', [HelpdeskController::class, 'manage'])->name('helpdesk.manage');
+        Route::patch('/helpdesk/{ticket}/status', [HelpdeskController::class, 'updateStatus'])->name('helpdesk.updateStatus');
     });
 });
 

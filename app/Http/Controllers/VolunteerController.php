@@ -21,23 +21,35 @@ class VolunteerController extends Controller
 
     public function index(Request $request): Response
     {
-        $filters = $request->only(['status', 'search']);
+        $filters = $request->only(['status', 'search', 'sort_by', 'sort_direction', 'regional_cabang']);
+        $sortBy = $filters['sort_by'] ?? null;
+        $sortDirection = $filters['sort_direction'] ?? 'asc';
 
         $volunteers = Volunteer::query()
             ->when($filters['search'] ?? null, fn($q, $v) =>
-                $q->where('name', 'like', "%{$v}%")
-                  ->orWhere('email', 'like', "%{$v}%")
-                  ->orWhere('phone', 'like', "%{$v}%")
+                $q->where(function($query) use ($v) {
+                    $query->where('name', 'like', "%{$v}%")
+                          ->orWhere('email', 'like', "%{$v}%")
+                          ->orWhere('phone', 'like', "%{$v}%")
+                          ->orWhere('regional_cabang', 'like', "%{$v}%");
+                })
             )
             ->when($filters['status'] ?? null, fn($q, $v) => $q->where('status', $v))
-            ->orderByRaw("CASE WHEN status = 'pending' THEN 1 WHEN status = 'approved' THEN 2 WHEN status = 'rejected' THEN 3 ELSE 4 END")
-            ->orderByDesc('applied_date')
+            ->when($filters['regional_cabang'] ?? null, fn($q, $v) => $q->where('regional_cabang', $v))
+            ->when($sortBy, function ($q) use ($sortBy, $sortDirection) {
+                $q->orderBy($sortBy, $sortDirection)
+                  ->when($sortBy !== 'id', fn($query) => $query->orderBy('id', 'desc'));
+            }, function ($q) {
+                $q->orderByRaw("CASE WHEN status = 'pending' THEN 1 WHEN status = 'approved' THEN 2 WHEN status = 'rejected' THEN 3 ELSE 4 END")
+                  ->orderByDesc('applied_date');
+            })
             ->paginate(15)
             ->withQueryString()
             ->through(fn($v) => [
                 'id'           => $v->id,
                 'name'         => $v->name,
                 'email'        => $v->email,
+                'regional_cabang' => $v->regional_cabang,
                 'phone'        => $v->phone,
                 'address'      => $v->address,
                 'birth_date'   => $v->birth_date?->toDateString(),
@@ -102,6 +114,7 @@ class VolunteerController extends Controller
             'job_category' => 'nullable|string|max:100',
             'job_type'     => 'nullable|string|max:100',
             'id_card'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'photo'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'skills'       => 'required|string|max:1000',
             'motivation'   => 'required|string|max:2000',
             'gender'              => 'nullable|in:L,P',
@@ -123,11 +136,16 @@ class VolunteerController extends Controller
             if ($request->hasFile('id_card')) {
                 $idCardPath = $request->file('id_card')->store('id_cards', 'public');
             }
+            $photoPath = null;
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('volunteers', 'public');
+            }
 
             Volunteer::create(array_merge($validated, [
                 'status'       => 'pending',
                 'applied_date' => now()->toDateString(),
                 'id_card_path' => $idCardPath,
+                'photo_path'   => $photoPath,
             ]));
 
             return redirect()->route('volunteers.register')
@@ -150,6 +168,7 @@ class VolunteerController extends Controller
             'job_category' => 'nullable|string|max:100',
             'job_type'     => 'nullable|string|max:100',
             'id_card'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'photo'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'skills'       => 'required|string|max:1000',
             'motivation'   => 'required|string|max:2000',
             'status'     => 'required|in:pending,approved,rejected',
@@ -173,6 +192,9 @@ class VolunteerController extends Controller
             if ($request->hasFile('id_card')) {
                 $validated['id_card_path'] = $request->file('id_card')->store('id_cards', 'public');
             }
+            if ($request->hasFile('photo')) {
+                $validated['photo_path'] = $request->file('photo')->store('volunteers', 'public');
+            }
 
             Volunteer::create($validated);
 
@@ -194,6 +216,7 @@ class VolunteerController extends Controller
             'job_category' => 'nullable|string|max:100',
             'job_type'     => 'nullable|string|max:100',
             'id_card'      => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'photo'        => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'skills'       => 'required|string|max:1000',
             'motivation'   => 'required|string|max:2000',
             'status'     => 'required|in:pending,approved,rejected',
@@ -217,6 +240,12 @@ class VolunteerController extends Controller
                     Storage::disk('public')->delete($volunteer->id_card_path);
                 }
                 $validated['id_card_path'] = $request->file('id_card')->store('id_cards', 'public');
+            }
+            if ($request->hasFile('photo')) {
+                if ($volunteer->photo_path) {
+                    Storage::disk('public')->delete($volunteer->photo_path);
+                }
+                $validated['photo_path'] = $request->file('photo')->store('volunteers', 'public');
             }
 
             $volunteer->update($validated);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Building2, MapPin, Phone, Mail, Globe, Clock, Save, X, Edit, Upload } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Globe, Clock, Save, X, Edit, Upload, Eye, EyeOff, Target, BookOpen } from 'lucide-react';
 
 interface Profile {
     id?: number;
@@ -14,6 +14,7 @@ interface Profile {
     email: string;
     website: string;
     history: string;
+    regional_logos_url?: Record<string, string>;
 }
 
 interface Props {
@@ -26,9 +27,9 @@ export default function ProfileIndex({ profile }: Props) {
     const isAnggotaOrRelawan = roles.includes('anggota') || roles.includes('relawan');
     const [isEditing, setIsEditing] = useState(!profile && !isAnggotaOrRelawan);
     const [previewLogo, setPreviewLogo] = useState<string | null>(profile?.logo_url || null);
+    const [showRegionalLogos, setShowRegionalLogos] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
-        _method: 'PUT',
         name: profile?.name || '',
         vision: profile?.vision || '',
         mission: profile?.mission || '',
@@ -80,14 +81,14 @@ export default function ProfileIndex({ profile }: Props) {
                     <form onSubmit={handleSubmit} className="card-body space-y-6">
                         {/* Logo Upload */}
                         <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6 border-b border-gray-100 dark:border-gray-800 pb-6">
-                            <div className="relative group">
-                                <div className="w-32 h-32 rounded-3xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-700">
-                                    {previewLogo ? (
-                                        <img src={previewLogo} alt="Logo Preview" className="w-full h-full object-contain p-2" />
-                                    ) : (
+                            <div className="relative group w-32 h-32 flex-shrink-0">
+                                {previewLogo ? (
+                                    <img src={previewLogo} alt="Logo Preview" className="w-full h-full object-contain rounded-2xl drop-shadow-[0_8px_16px_rgba(0,0,0,0.15)] transition-transform duration-300 group-hover:scale-105" />
+                                ) : (
+                                    <div className="w-full h-full rounded-3xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-700">
                                         <Building2 size={40} className="text-gray-400" />
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                                 <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl cursor-pointer">
                                     <Upload className="text-white" />
                                     <input type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
@@ -154,11 +155,13 @@ export default function ProfileIndex({ profile }: Props) {
                     {/* Left Column: Info card */}
                     <div className="card h-fit">
                         <div className="card-body flex flex-col items-center text-center border-b border-gray-100 dark:border-gray-800">
-                            <div className="w-32 h-32 rounded-3xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center p-4 mb-4 shadow-inner">
+                            <div className="w-32 h-32 flex items-center justify-center mb-4">
                                 {profile?.logo_url ? (
-                                    <img src={profile.logo_url} alt="Logo" className="w-full h-full object-contain" />
+                                    <img src={profile.logo_url} alt="Logo" className="w-full h-full object-contain rounded-2xl drop-shadow-[0_8px_16px_rgba(0,0,0,0.15)]" />
                                 ) : (
-                                    <Building2 size={48} className="text-gray-300" />
+                                    <div className="w-full h-full rounded-3xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center p-4 shadow-inner">
+                                        <Building2 size={48} className="text-gray-300" />
+                                    </div>
                                 )}
                             </div>
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{profile?.name}</h2>
@@ -189,40 +192,113 @@ export default function ProfileIndex({ profile }: Props) {
                     </div>
 
                     {/* Right Column: Visi Misi Sejarah */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="card">
-                            <div className="card-header bg-red-50/50 dark:bg-red-900/10">
-                                <h3 className="font-bold text-red-800 dark:text-red-400">Visi & Misi</h3>
+                    <div className="lg:col-span-2 space-y-8">
+                        {/* Visi & Misi Paper Card */}
+                        <div className="relative bg-[#fdfbf7] dark:bg-amber-950/20 rounded shadow-md border border-amber-100 dark:border-amber-900/50 p-8 
+                            before:absolute before:top-0 before:right-0 before:w-12 before:h-12 
+                            before:bg-white dark:before:bg-gray-900 before:border-b before:border-l 
+                            before:border-amber-100 dark:before:border-amber-900/50 before:shadow-[-4px_4px_4px_rgba(0,0,0,0.05)] before:rounded-bl-lg transition-transform hover:-translate-y-1 hover:shadow-lg">
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-amber-100/50 dark:border-amber-900/30">
+                                <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg text-amber-700 dark:text-amber-400">
+                                    <Target size={24} />
+                                </div>
+                                <h3 className="font-bold text-xl text-amber-800 dark:text-amber-500">Visi & Misi</h3>
                             </div>
-                            <div className="card-body space-y-6">
+                            <div className="space-y-6">
                                 <div>
-                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Visi</h4>
-                                    <p className="text-gray-800 dark:text-gray-200 leading-relaxed text-lg font-medium">
-                                        {profile?.vision || '-'}
+                                    <h4 className="text-sm font-bold text-amber-600 dark:text-amber-600/80 uppercase tracking-wider mb-2">Visi</h4>
+                                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-base text-justify font-serif italic">
+                                        "{profile?.vision || '-'}"
                                     </p>
                                 </div>
-                                <div className="h-px bg-gray-100 dark:bg-gray-800 w-full" />
                                 <div>
-                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Misi</h4>
-                                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                    <h4 className="text-sm font-bold text-amber-600 dark:text-amber-600/80 uppercase tracking-wider mb-2">Misi</h4>
+                                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap text-base text-justify font-serif">
                                         {profile?.mission || '-'}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="card">
-                            <div className="card-header flex items-center gap-2">
-                                <Clock size={18} className="text-gray-500" />
-                                <h3 className="font-semibold text-gray-900 dark:text-white">Sejarah Singkat</h3>
+                        {/* Sejarah Singkat Paper Card */}
+                        <div className="relative bg-[#f4f7f9] dark:bg-blue-950/20 rounded shadow-md border border-blue-100 dark:border-blue-900/50 p-8 
+                            before:absolute before:top-0 before:right-0 before:w-12 before:h-12 
+                            before:bg-white dark:before:bg-gray-900 before:border-b before:border-l 
+                            before:border-blue-100 dark:before:border-blue-900/50 before:shadow-[-4px_4px_4px_rgba(0,0,0,0.05)] before:rounded-bl-lg transition-transform hover:-translate-y-1 hover:shadow-lg">
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-blue-100/50 dark:border-blue-900/30">
+                                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg text-blue-700 dark:text-blue-400">
+                                    <BookOpen size={24} />
+                                </div>
+                                <h3 className="font-bold text-xl text-blue-800 dark:text-blue-500">Sejarah Singkat</h3>
                             </div>
-                            <div className="card-body">
-                                <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                            <div>
+                                <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap text-base text-justify font-serif">
                                     {profile?.history || '-'}
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {!isEditing && !isAnggotaOrRelawan && (
+                <div className="card max-w-6xl mt-6">
+                    <div className="card-header bg-gray-50/50 dark:bg-gray-800/10 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-gray-800 dark:text-gray-200">Manajemen Logo Regional Cabang</h3>
+                            <p className="text-sm text-gray-500 font-normal mt-1">Logo ini akan ditampilkan di sebelah judul halaman pada masing-masing modul regional.</p>
+                        </div>
+                        <button 
+                            onClick={() => setShowRegionalLogos(!showRegionalLogos)}
+                            className="btn-secondary flex items-center gap-2"
+                        >
+                            {showRegionalLogos ? <EyeOff size={16} /> : <Eye size={16} />}
+                            {showRegionalLogos ? 'Sembunyikan Logo' : 'Tampilkan Logo'}
+                        </button>
+                    </div>
+                    {showRegionalLogos && (
+                        <div className="card-body border-t border-gray-100 dark:border-gray-800">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                {[
+                                    'BSMI Provinsi Banten',
+                                    'BSMI Kabupaten Serang',
+                                    'BSMI Kota Serang',
+                                    'BSMI Kabupaten Tangerang',
+                                    'BSMI Kota Tangerang',
+                                    'BSMI Kota Tangerang Selatan',
+                                    'BSMI Kabupaten Pandeglang',
+                                    'BSMI Kota Cilegon',
+                                    'BSMI Lebak'
+                                ].map((regional) => (
+                                    <div key={regional} className="flex flex-col items-center gap-3">
+                                        <div className="relative group w-24 h-24 flex-shrink-0">
+                                            {profile?.regional_logos_url?.[regional] ? (
+                                                <img src={profile.regional_logos_url[regional]} alt={regional} className="w-full h-full object-contain rounded-xl drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)] transition-transform duration-300 group-hover:scale-105" />
+                                            ) : (
+                                                <div className="w-full h-full rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-700">
+                                                    <Building2 size={24} className="text-gray-400" />
+                                                </div>
+                                            )}
+                                            <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl cursor-pointer">
+                                                <Upload size={20} className="text-white" />
+                                                <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                                    if (e.target.files?.[0]) {
+                                                        router.post('/profil-organisasi/regional-logos', {
+                                                            regional: regional,
+                                                            logo: e.target.files[0],
+                                                        }, { preserveScroll: true, forceFormData: true });
+                                                    }
+                                                }} />
+                                            </label>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 leading-tight">{regional}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </AppLayout>

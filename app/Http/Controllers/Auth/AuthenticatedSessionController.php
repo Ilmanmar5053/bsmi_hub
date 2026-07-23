@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\News;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -18,9 +19,16 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
+        $announcement = News::where('category', 'Pengumuman')
+            ->where('status', 'published')
+            ->orderBy('published_at', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
+            'announcement' => $announcement,
         ]);
     }
 

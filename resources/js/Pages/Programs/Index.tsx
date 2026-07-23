@@ -3,6 +3,7 @@ import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { StatusBadge, Modal, SearchInput, formatRupiah, formatDate, EmptyState } from '@/Components/Shared';
 import { Plus, Edit, Trash2, Calendar, MapPin, Users, Target } from 'lucide-react';
+import { confirmAction } from '@/Utils/swal';
 
 interface Program {
     id: number;
@@ -26,8 +27,9 @@ interface Props {
 export default function ProgramsIndex({ programs, filters }: Props) {
     const { props } = usePage<any>();
     const roles = props.auth?.roles || [];
-    const canManagePrograms = props.auth?.permissions?.includes('manage-programs');
-    const canEdit = canManagePrograms && !roles.includes('anggota') && !roles.includes('relawan');
+    const isSuperAdmin = roles.includes('administrator');
+    const canManagePrograms = isSuperAdmin || props.auth?.permissions?.includes('menu-programs');
+    const canEdit = isSuperAdmin || (canManagePrograms && !roles.includes('anggota') && !roles.includes('relawan'));
 
     const [statusFilter, setStatusFilter] = useState(filters.status || '');
     const [categoryFilter, setCategoryFilter] = useState(filters.category || '');
@@ -54,8 +56,8 @@ export default function ProgramsIndex({ programs, filters }: Props) {
         router.get('/programs', { status, category }, { preserveState: true });
     };
 
-    const handleDelete = (id: number) => {
-        if (confirm('Yakin ingin menghapus program ini?')) {
+    const handleDelete = async (id: number) => {
+        if (await confirmAction('Yakin ingin menghapus program ini?')) {
             router.delete(`/programs/${id}`);
         }
     };
@@ -103,12 +105,12 @@ export default function ProgramsIndex({ programs, filters }: Props) {
 
     return (
         <AppLayout>
-            <Head title="Program & Kegiatan" />
+            <Head title="Program Kerja" />
 
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Program & Kegiatan</h1>
-                    <p className="page-subtitle">Kelola semua program dan kegiatan BSMI.</p>
+                    <h1 className="page-title">Program Kerja</h1>
+                    <p className="page-subtitle">Kelola program kerja yang diselenggarakan oleh BSMI.</p>
                 </div>
                 {canEdit && (
                     <button onClick={handleOpenAdd} className="btn-primary">

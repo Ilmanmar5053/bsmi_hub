@@ -35,8 +35,13 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-react": "^1.24.0",
+        "puppeteer": "^25.3.0",
         "react-is": "^19.2.7",
         "recharts": "^3.9.2",
+        "sweetalert2": "^11.26.25",
         "tailwind-merge": "^3.6.0"
+    },
+    "allowScripts": {
+        "puppeteer@25.3.0": true
     }
 }

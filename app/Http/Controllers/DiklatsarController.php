@@ -35,6 +35,7 @@ class DiklatsarController extends Controller
                 'job_type'        => $v->job_type,
                 'diklatsar_stage' => $v->diklatsar_stage,
                 'applied_date'    => $v->applied_date?->toDateString(),
+                'photo_url'       => $v->photo_url,
             ]);
 
         $modules = DiklatsarModule::orderBy('stage_number')->get();
@@ -105,6 +106,29 @@ class DiklatsarController extends Controller
         }
 
         return back()->with('error', 'Relawan sudah lulus tahap Diklatsar.');
+    }
+
+    public function bulkAdvance(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'volunteer_ids'   => 'required|array',
+            'volunteer_ids.*' => 'exists:volunteers,id',
+        ]);
+
+        $volunteers = Volunteer::whereIn('id', $validated['volunteer_ids'])
+            ->where('status', 'approved')
+            ->where('diklatsar_stage', '<', 6)
+            ->get();
+
+        if ($volunteers->isEmpty()) {
+            return back()->with('error', 'Tidak ada relawan valid yang dapat dinaikkan tahapnya.');
+        }
+
+        foreach ($volunteers as $volunteer) {
+            $volunteer->increment('diklatsar_stage');
+        }
+
+        return back()->with('success', count($volunteers) . ' relawan berhasil dinaikkan ke tahap selanjutnya.');
     }
 
     public function certificate(Volunteer $volunteer)

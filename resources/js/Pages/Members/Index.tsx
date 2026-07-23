@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { StatusBadge, Modal, SearchInput, formatDate, EmptyState } from '@/Components/Shared';
-import { Plus, Download, Edit, Trash2, Users, Eye, ToggleLeft, ToggleRight, KeyRound } from 'lucide-react';
+import { Plus, Download, Edit, Trash2, Users, Eye, ToggleLeft, ToggleRight, KeyRound, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { confirmAction } from '@/Utils/swal';
 
 interface Member {
     id: number;
@@ -31,11 +32,12 @@ interface Member {
     status_keluarga?: string;
     agama?: string;
     jumlah_tanggungan?: string;
+    is_pengurus?: boolean;
 }
 
 interface Props {
-    members: { data: Member[]; meta: any };
-    filters: { search: string; status_aktif: string; bagian_divisi: string };
+    members: { data: Member[]; links?: any[]; current_page?: number; last_page?: number; per_page?: number; total?: number; from?: number; to?: number };
+    filters: { search: string; status_aktif: string; bagian_divisi: string; per_page?: string; sort_by?: string; sort_direction?: string; regional_cabang?: string; };
     stats?: {
         total: number;
         gender: Record<string, number>;
@@ -54,6 +56,9 @@ export default function MembersIndex({ members, filters, stats, eligibleVoluntee
     const [search, setSearch] = useState(filters.search || '');
     const [statusFilter, setStatusFilter] = useState(filters.status_aktif || '');
     const [divisionFilter, setDivisionFilter] = useState(filters.bagian_divisi || '');
+    const [perPage, setPerPage] = useState(filters.per_page || '10');
+    const [sortBy, setSortBy] = useState(filters.sort_by || 'nama_lengkap');
+    const [sortDir, setSortDir] = useState(filters.sort_direction || 'asc');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [viewingMember, setViewingMember] = useState<Member | null>(null);
@@ -74,21 +79,41 @@ export default function MembersIndex({ members, filters, stats, eligibleVoluntee
         volunteer_id: '' as string | number,
     });
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.get('/members', { search, status_aktif: statusFilter, bagian_divisi: divisionFilter }, { preserveState: true });
+    const handleSearch = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        router.get('/members', { search, status_aktif: statusFilter, bagian_divisi: divisionFilter, per_page: perPage, sort_by: sortBy, sort_direction: sortDir }, { preserveState: true });
     };
 
-    const handleDelete = (id: number) => {
-        if (confirm('Yakin ingin menghapus anggota ini?')) {
+    const handleSort = (column: string) => {
+        let newDir = 'asc';
+        if (sortBy === column) {
+            newDir = sortDir === 'asc' ? 'desc' : 'asc';
+        }
+        setSortBy(column);
+        setSortDir(newDir);
+        router.get('/members', { search, status_aktif: statusFilter, bagian_divisi: divisionFilter, per_page: perPage, sort_by: column, sort_direction: newDir }, { preserveState: true });
+    };
+
+    const SortIcon = ({ column }: { column: string }) => {
+        if (sortBy !== column) return <ArrowUpDown size={14} className="text-gray-400 inline ml-1 opacity-50" />;
+        return sortDir === 'asc' ? <ArrowUp size={14} className="text-theme-600 inline ml-1" /> : <ArrowDown size={14} className="text-theme-600 inline ml-1" />;
+    };
+
+    const handlePerPageChange = (value: string) => {
+        setPerPage(value);
+        router.get('/members', { search, status_aktif: statusFilter, bagian_divisi: divisionFilter, per_page: value }, { preserveState: true });
+    };
+
+    const handleDelete = async (id: number) => {
+        if (await confirmAction('Yakin ingin menghapus anggota ini?')) {
             router.delete(`/members/${id}`);
         }
     };
 
-    const handleToggleStatus = (member: Member) => {
+    const handleToggleStatus = async (member: Member) => {
         const isActive = member.status_aktif;
         const label = isActive ? 'menonaktifkan' : 'mengaktifkan';
-        if (confirm(`Yakin ingin ${label} keanggotaan ${member.nama_lengkap}?`)) {
+        if (await confirmAction(`Yakin ingin ${label} keanggotaan ${member.nama_lengkap}?`)) {
             router.patch(`/members/${member.id}/toggle-status`);
         }
     };
@@ -226,10 +251,19 @@ export default function MembersIndex({ members, filters, stats, eligibleVoluntee
         <AppLayout>
             <Head title="Data Anggota" />
 
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Data Anggota</h1>
-                    <p className="page-subtitle">Kelola data anggota BSMI.</p>
+            <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    {filters?.regional_cabang && (props.organization as any)?.regional_logos_url?.[filters.regional_cabang] && (
+                        <img 
+                            src={(props.organization as any).regional_logos_url[filters.regional_cabang]} 
+                            alt={filters.regional_cabang} 
+                            className="w-14 h-14 object-contain drop-shadow-sm"
+                        />
+                    )}
+                    <div>
+                        <h1 className="page-title">Data Anggota {filters?.regional_cabang ? `- ${filters.regional_cabang}` : ''}</h1>
+                        <p className="page-subtitle">Kelola data anggota BSMI {filters?.regional_cabang || 'seluruh cabang'}.</p>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     <a href="/members/export" className="btn-secondary">
@@ -341,18 +375,19 @@ export default function MembersIndex({ members, filters, stats, eligibleVoluntee
                         <thead>
                             <tr>
                                 <th>No</th>
-                                <th>Anggota</th>
-                                <th>Bagian/Divisi</th>
+                                <th onClick={() => handleSort('nama_lengkap')} className="cursor-pointer hover:bg-gray-100 transition-colors">Anggota <SortIcon column="nama_lengkap" /></th>
+                                <th onClick={() => handleSort('bagian_divisi')} className="cursor-pointer hover:bg-gray-100 transition-colors">Bagian/Divisi <SortIcon column="bagian_divisi" /></th>
                                 <th>Kontak</th>
-                                <th>Bergabung</th>
-                                <th>Status</th>
+                                <th onClick={() => handleSort('join_date')} className="cursor-pointer hover:bg-gray-100 transition-colors">Bergabung <SortIcon column="join_date" /></th>
+                                <th className="text-center">Status Pengurus</th>
+                                <th onClick={() => handleSort('status_aktif')} className="cursor-pointer hover:bg-gray-100 transition-colors">Status Anggota <SortIcon column="status_aktif" /></th>
                                 <th className="text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             {members.data.length > 0 ? members.data.map((member, i) => (
                                 <tr key={member.id}>
-                                    <td>{i + 1}</td>
+                                    <td>{(members.from || 1) + i}</td>
                                     <td>
                                         <div className="flex items-center gap-3">
                                             <img src={member.photo_url} alt="" className="w-8 h-8 rounded-full bg-gray-100" />
@@ -370,12 +405,27 @@ export default function MembersIndex({ members, filters, stats, eligibleVoluntee
                                         </div>
                                     </td>
                                     <td>{formatDate(member.join_date)}</td>
+                                    <td className="text-center">
+                                        {member.is_pengurus ? (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                                Ya
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400">
+                                                Tidak
+                                            </span>
+                                        )}
+                                    </td>
                                     <td><StatusBadge status={member.status_aktif ? 'active' : 'inactive'} /></td>
                                     <td className="text-right space-x-2">
                                         {!member.user_id && canEdit && (
                                             <button
-                                                onClick={() => {
-                                                    if (confirm(`Buat akun login untuk ${member.nama_lengkap}? Password akan di-generate otomatis.`)) {
+                                                onClick={async () => {
+                                                    if (!member.status_aktif) {
+                                                        alert("Untuk membuat akun, pilih Anggota dengan status Aktif.");
+                                                        return;
+                                                    }
+                                                    if (await confirmAction(`Buat akun login untuk ${member.nama_lengkap}? Password akan di-generate otomatis.`)) {
                                                         router.post(`/members/${member.id}/create-account`);
                                                     }
                                                 }}
@@ -412,13 +462,54 @@ export default function MembersIndex({ members, filters, stats, eligibleVoluntee
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={7}>
+                                    <td colSpan={8}>
                                         <EmptyState icon={<Users />} title="Belum ada data anggota" />
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                        <span>Tampilkan</span>
+                        <select
+                            className="form-input !py-1.5 !px-2 !w-20 text-sm"
+                            value={perPage}
+                            onChange={e => handlePerPageChange(e.target.value)}
+                        >
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="all">Semua</option>
+                        </select>
+                        <span>data per halaman</span>
+                        {members.total !== undefined && (
+                            <span className="text-gray-400">• Total: <strong className="text-gray-600 dark:text-gray-300">{members.total}</strong> anggota</span>
+                        )}
+                    </div>
+
+                    {members.links && members.last_page && members.last_page > 1 && (
+                        <div className="flex flex-wrap items-center justify-center gap-1 mt-3 sm:mt-0">
+                            {members.links.map((link: any, idx: number) => (
+                                <button
+                                    key={idx}
+                                    disabled={!link.url}
+                                    onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
+                                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                                        link.active
+                                            ? 'bg-theme-600 text-white font-bold'
+                                            : link.url
+                                                ? 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                                    }`}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 

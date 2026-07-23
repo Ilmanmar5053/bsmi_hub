@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Head, Link, router, usePage, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { StatusBadge, Modal, formatDate, EmptyState } from '@/Components/Shared';
-import { UserPlus, Eye, Check, X, Download, KeyRound } from 'lucide-react';
+import { StatusBadge, Modal, formatDate, EmptyState, SearchInput, Pagination } from '@/Components/Shared';
+import { UserPlus, Eye, Check, X, Download, KeyRound, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { confirmAction } from '@/Utils/swal';
 
 interface Volunteer {
     id: number;
@@ -35,9 +36,17 @@ interface Volunteer {
     reviewed_at?: string;
 }
 
+interface PaginatedData<T> {
+    data: T[];
+    links: any[];
+    current_page: number;
+    per_page: number;
+    total: number;
+}
+
 interface Props {
-    volunteers: { data: Volunteer[]; meta: any };
-    filters: { status: string };
+    volunteers: PaginatedData<Volunteer>;
+    filters: { status: string; sort_by?: string; sort_direction?: string; regional_cabang?: string; search?: string; };
 }
 
 export default function VolunteersIndex({ volunteers, filters }: Props) {
@@ -48,29 +57,34 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
     const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(null);
     const [resetPasswordVolunteer, setResetPasswordVolunteer] = useState<Volunteer | null>(null);
 
+    const [sortBy, setSortBy] = useState(filters.sort_by || '');
+    const [sortDir, setSortDir] = useState(filters.sort_direction || 'asc');
+    const [search, setSearch] = useState(filters.search || '');
+    const [regional, setRegional] = useState(filters.regional_cabang || '');
+
     const { data: pwData, setData: setPwData, post: postPw, processing: pwProcessing, errors: pwErrors, reset: resetPwForm } = useForm({
         password: '',
         password_confirmation: '',
     });
 
-    const handleApprove = (id: number) => {
-        if (confirm('Setujui relawan ini?')) {
+    const handleApprove = async (id: number) => {
+        if (await confirmAction('Setujui relawan ini?')) {
             router.patch(`/volunteers/${id}/approve`, {}, {
                 onSuccess: () => setSelectedVolunteer(null)
             });
         }
     };
 
-    const handleReject = (id: number) => {
-        if (confirm('Tolak relawan ini?')) {
+    const handleReject = async (id: number) => {
+        if (await confirmAction('Tolak relawan ini?')) {
             router.patch(`/volunteers/${id}/reject`, {}, {
                 onSuccess: () => setSelectedVolunteer(null)
             });
         }
     };
 
-    const handleCreateAccount = (id: number) => {
-        if (confirm('Buat akun login (role relawan) untuk pengguna ini?')) {
+    const handleCreateAccount = async (id: number) => {
+        if (await confirmAction('Buat akun login (role relawan) untuk pengguna ini?')) {
             router.post(`/volunteers/${id}/create-account`, {}, {
                 onSuccess: () => {
                     setSelectedVolunteer(null);
@@ -91,20 +105,56 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
     };
 
     const tabs = [
-        { label: 'Semua', value: '' },
-        { label: 'Menunggu', value: 'pending' },
-        { label: 'Disetujui', value: 'approved' },
-        { label: 'Ditolak', value: 'rejected' }
+        { label: 'Semua', value: '', activeClass: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 shadow-sm' },
+        { label: 'Menunggu', value: 'pending', activeClass: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800 shadow-sm' },
+        { label: 'Disetujui', value: 'approved', activeClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 shadow-sm' },
+        { label: 'Ditolak', value: 'rejected', activeClass: 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800 shadow-sm' }
     ];
+
+    const handleSort = (column: string) => {
+        let newDir = 'asc';
+        if (sortBy === column) {
+            newDir = sortDir === 'asc' ? 'desc' : 'asc';
+        }
+        setSortBy(column);
+        setSortDir(newDir);
+        router.get('/volunteers', { status: filters.status, search, regional_cabang: regional, sort_by: column, sort_direction: newDir }, { preserveState: true });
+    };
+
+    const handleSearch = (value: string) => {
+        setSearch(value);
+        router.get('/volunteers', { status: filters.status, search: value, regional_cabang: regional, sort_by: sortBy, sort_direction: sortDir }, { preserveState: true, replace: true });
+    };
+
+    const handleRegionalChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        setRegional(val);
+        router.get('/volunteers', { status: filters.status, search, regional_cabang: val, sort_by: sortBy, sort_direction: sortDir }, { preserveState: true });
+    };
+
+    const SortIcon = ({ column }: { column: string }) => {
+        if (!sortBy && column === 'applied_date') return <ArrowUpDown size={14} className="text-gray-400 inline ml-1 opacity-50" />;
+        if (sortBy !== column) return <ArrowUpDown size={14} className="text-gray-400 inline ml-1 opacity-50" />;
+        return sortDir === 'asc' ? <ArrowUp size={14} className="text-theme-600 inline ml-1" /> : <ArrowDown size={14} className="text-theme-600 inline ml-1" />;
+    };
 
     return (
         <AppLayout>
             <Head title="Manajemen Relawan" />
 
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Manajemen Relawan</h1>
-                    <p className="page-subtitle">Kelola pendaftaran dan data relawan.</p>
+            <div className="page-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    {filters?.regional_cabang && (props.organization as any)?.regional_logos_url?.[filters.regional_cabang] && (
+                        <img 
+                            src={(props.organization as any).regional_logos_url[filters.regional_cabang]} 
+                            alt={filters.regional_cabang} 
+                            className="w-14 h-14 object-contain drop-shadow-sm"
+                        />
+                    )}
+                    <div>
+                        <h1 className="page-title">Manajemen Relawan {filters?.regional_cabang ? `- ${filters.regional_cabang}` : ''}</h1>
+                        <p className="page-subtitle">Kelola pendaftaran dan data relawan {filters?.regional_cabang || 'seluruh cabang'}.</p>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     <a 
@@ -119,22 +169,46 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
                 </div>
             </div>
 
-            <div className="mb-6 border-b border-gray-200 dark:border-gray-800">
-                <nav className="-mb-px flex space-x-8">
-                    {tabs.map(tab => (
-                        <Link
-                            key={tab.value}
-                            href={`/volunteers?status=${tab.value}`}
-                            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                                (filters.status || '') === tab.value
-                                    ? 'border-red-500 text-red-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            }`}
-                        >
-                            {tab.label}
-                        </Link>
-                    ))}
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <nav className="flex space-x-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
+                    {tabs.map(tab => {
+                        const isActive = (filters.status || '') === tab.value;
+                        return (
+                            <Link
+                                key={tab.value}
+                                href={`/volunteers?status=${tab.value}${search ? `&search=${search}` : ''}${regional ? `&regional_cabang=${regional}` : ''}`}
+                                className={`whitespace-nowrap py-2 px-5 rounded-full font-medium text-sm transition-all duration-200 border ${
+                                    isActive
+                                        ? tab.activeClass
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800/50'
+                                }`}
+                            >
+                                {tab.label}
+                            </Link>
+                        );
+                    })}
                 </nav>
+                <div className="flex flex-col sm:flex-row items-center gap-3 pb-2 md:pb-0">
+                    <select 
+                        className="form-input text-sm py-1.5 w-full sm:w-auto"
+                        value={regional}
+                        onChange={handleRegionalChange}
+                    >
+                        <option value="">Semua Cabang</option>
+                        <option value="BSMI Provinsi Banten">BSMI Provinsi Banten</option>
+                        <option value="BSMI Kabupaten Serang">BSMI Kabupaten Serang</option>
+                        <option value="BSMI Kota Serang">BSMI Kota Serang</option>
+                        <option value="BSMI Kabupaten Tangerang">BSMI Kabupaten Tangerang</option>
+                        <option value="BSMI Kota Tangerang">BSMI Kota Tangerang</option>
+                        <option value="BSMI Kota Tangerang Selatan">BSMI Kota Tangerang Selatan</option>
+                        <option value="BSMI Kabupaten Pandeglang">BSMI Kabupaten Pandeglang</option>
+                        <option value="BSMI Kota Cilegon">BSMI Kota Cilegon</option>
+                        <option value="BSMI Lebak">BSMI Lebak</option>
+                    </select>
+                    <div className="w-full sm:w-64">
+                        <SearchInput value={search} onChange={handleSearch} placeholder="Cari nama, email, hp..." />
+                    </div>
+                </div>
             </div>
 
             <div className="card overflow-hidden">
@@ -142,21 +216,29 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Nama</th>
+                                <th className="w-12 text-center">No</th>
+                                <th onClick={() => handleSort('name')} className="cursor-pointer hover:bg-gray-100 transition-colors">Nama <SortIcon column="name" /></th>
                                 <th>Kontak</th>
-                                <th>Keahlian</th>
-                                <th>Tgl Daftar</th>
-                                <th>Status</th>
+                                <th>Cabang</th>
+                                <th onClick={() => handleSort('skills')} className="cursor-pointer hover:bg-gray-100 transition-colors">Keahlian <SortIcon column="skills" /></th>
+                                <th onClick={() => handleSort('applied_date')} className="cursor-pointer hover:bg-gray-100 transition-colors">Tgl Daftar <SortIcon column="applied_date" /></th>
+                                <th onClick={() => handleSort('status')} className="cursor-pointer hover:bg-gray-100 transition-colors">Status <SortIcon column="status" /></th>
                                 <th className="text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {volunteers.data.length > 0 ? volunteers.data.map(v => (
+                            {volunteers.data.length > 0 ? volunteers.data.map((v, index) => (
                                 <tr key={v.id}>
+                                    <td className="text-center text-gray-500 text-sm">
+                                        {(volunteers.current_page - 1) * volunteers.per_page + index + 1}
+                                    </td>
                                     <td className="font-medium text-gray-900 dark:text-white">{v.name}</td>
                                     <td className="text-xs">
                                         <p>{v.phone}</p>
                                         <p className="text-gray-500">{v.email}</p>
+                                    </td>
+                                    <td className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        {v.regional_cabang || <span className="text-gray-400 italic">Pusat</span>}
                                     </td>
                                     <td className="text-sm truncate max-w-[200px]">{v.skills}</td>
                                     <td>{formatDate(v.applied_date)}</td>
@@ -169,7 +251,7 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6}>
+                                    <td colSpan={8}>
                                         <EmptyState icon={<UserPlus />} title="Tidak ada data relawan" />
                                     </td>
                                 </tr>
@@ -177,6 +259,11 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
                         </tbody>
                     </table>
                 </div>
+                {volunteers.links && volunteers.links.length > 3 && (
+                    <div className="border-t border-gray-200 dark:border-gray-800">
+                        <Pagination links={volunteers.links} />
+                    </div>
+                )}
             </div>
 
             <Modal isOpen={!!selectedVolunteer} onClose={() => setSelectedVolunteer(null)} title="Detail Relawan" size="lg">

@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposal BSMI Hub - Sistem Manajemen Organisasi</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;600;700;800;900&display=swap');
+
+        :root {
+            --primary: #C8102E;
+            --primary-dark: #A80000;
+            --secondary: #007A33;
+            --accent-bg: #F4F6F8;
+            --text-dark: #1a1a2e;
+            --text-body: #333;
+            --text-muted: #666;
+            --border: #e0e0e0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        @page {
+            size: A4 portrait;
+            margin: 20mm 18mm 20mm 18mm;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.55;
+            color: var(--text-body);
+            background: #fff;
+        }
+
+        /* ===== PAGE CONTAINER ===== */
+        .page {
+            width: 174mm; /* A4 210mm - 18mm*2 margins */
+            min-height: 257mm; /* A4 297mm - 20mm*2 margins */
+            page-break-after: always;
+            page-break-inside: avoid;
+            position: relative;
+            padding: 0;
+            overflow: hidden;
+        }
+        .page:last-child { page-break-after: auto; }
+
+        /* Hair border on every page */
+        .page-border {
+            border: 0.5pt solid #ccc;
+            padding: 18px 22px;
+            min-height: 255mm;
+            position: relative;
+        }
+
+        /* ===== COVER PAGE ===== */
+        .cover-border {
+            border: 0.5pt solid #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 255mm;
+            padding: 30px;
+            position: relative;
+        }
+        .cover-border::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-dark), var(--secondary));
+        }
+        .cover-border::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--secondary), var(--primary-dark), var(--primary));
+        }
+        .cover-badge {
+            display: inline-block;
+            background: var(--accent-bg);
+            color: var(--primary);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 10pt;
+            padding: 6px 24px;
+            border-radius: 50px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            border: 1.5px solid var(--primary);
+        }
+        .cover-logo {
+            width: 160px;
+            margin: 0 auto 24px;
+        }
+        .cover-logo img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+        .cover h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 20pt;
+            font-weight: 800;
+            color: var(--primary-dark);
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+        .cover h2 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13pt;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 18px;
+        }
+        .cover-tagline {
+            font-size: 10pt;
+            font-style: italic;
+            color: var(--text-muted);
+            max-width: 420px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+            padding: 10px 16px;
+            border-left: 3px solid var(--primary);
+            background: var(--accent-bg);
+            text-align: left;
+        }
+        .cover-meta {
+            text-align: left;
+            font-size: 9.5pt;
+            color: var(--text-body);
+            line-height: 2;
+        }
+        .cover-meta strong {
+            display: inline-block;
+            min-width: 135px;
+            color: var(--text-dark);
+        }
+        .cover-divider {
+            width: 70px;
+            height: 3px;
+            background: var(--primary);
+            margin: 24px auto;
+        }
+
+        /* ===== SECTION HEADINGS ===== */
+        h1.section-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14pt;
+            font-weight: 800;
+            color: var(--primary-dark);
+            margin: 0 0 8px 0;
+            padding-bottom: 6px;
+            border-bottom: 2.5px solid var(--primary);
+        }
+        h2.sub-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11pt;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 18px 0 8px 0;
+        }
+        p {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        /* ===== CALLOUT BOXES ===== */
+        .callout {
+            background: var(--accent-bg);
+            border-left: 3px solid var(--primary);
+            padding: 12px 16px;
+            margin: 14px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        .callout.green {
+            border-left-color: var(--secondary);
+            background: #f0faf4;
+        }
+        .callout p { margin-bottom: 4px; }
+
+        /* ===== GOAL CARDS ===== */
+        .goal-cards {
+            display: flex;
+            gap: 12px;
+            margin: 14px 0 18px;
+        }
+        .goal-card {
+            flex: 1;
+            background: linear-gradient(135deg, var(--accent-bg), #fff);
+            border: 1px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 0 0 8px 8px;
+            padding: 14px 12px;
+            text-align: center;
+        }
+        .goal-card h4 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 8pt;
+            font-weight: 800;
+            color: var(--primary-dark);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .goal-card p {
+            font-size: 8.5pt;
+            color: var(--text-muted);
+            text-align: center;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        /* ===== TABLES ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 18px;
+            font-size: 9.5pt;
+        }
+        table thead th {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 8.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 10px 12px;
+            text-align: left;
+            border: none;
+        }
+        table thead th:first-child { border-radius: 6px 0 0 0; }
+        table thead th:last-child { border-radius: 0 6px 0 0; }
+        table tbody td {
+            padding: 8px 12px;
+            border-bottom: 0.5pt solid #eee;
+            vertical-align: top;
+        }
+        table tbody tr:nth-child(even) { background: var(--accent-bg); }
+        table tbody td:first-child {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: center;
+            width: 36px;
+        }
+        table tbody td strong {
+            color: var(--text-dark);
+        }
+
+        /* ===== TECH STACK ===== */
+        .tech-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 14px 0 18px;
+        }
+        .tech-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px;
+            background: var(--accent-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            width: calc(50% - 5px);
+        }
+        .tech-badge {
+            flex-shrink: 0;
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 7.5pt;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1.1;
+        }
+        .tech-badge.green {
+            background: linear-gradient(135deg, var(--secondary), #005a24);
+        }
+        .tech-info h4 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 9.5pt;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 2px;
+        }
+        .tech-info p {
+            font-size: 8.5pt;
+            color: var(--text-muted);
+            margin: 0;
+            text-align: left;
+        }
+
+        /* ===== TIMELINE ===== */
+        .timeline { margin: 16px 0 18px; }
+        .timeline-item {
+            display: flex;
+            align-items: stretch;
+        }
+        .timeline-left {
+            width: 90px;
+            flex-shrink: 0;
+            text-align: right;
+            padding-right: 18px;
+            position: relative;
+        }
+        .timeline-left::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+        .timeline-dot {
+            position: absolute;
+            right: -6px;
+            top: 14px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 2.5px solid #fff;
+            box-shadow: 0 0 0 1.5px var(--primary);
+            z-index: 1;
+        }
+        .timeline-week {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 8pt;
+            color: var(--primary);
+            padding-top: 12px;
+        }
+        .timeline-right {
+            flex: 1;
+            padding: 10px 0 10px 20px;
+        }
+        .timeline-right h4 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 9.5pt;
+            color: var(--text-dark);
+            margin-bottom: 2px;
+        }
+        .timeline-right p {
+            font-size: 8.5pt;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* ===== RAB TABLE ===== */
+        .rab-table tbody td:last-child {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            color: var(--text-dark);
+            text-align: right;
+            white-space: nowrap;
+        }
+        .rab-table tfoot td {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 10.5pt;
+            padding: 12px;
+            border: none;
+        }
+        .rab-table tfoot td:last-child {
+            text-align: right;
+            color: #fff;
+        }
+        .rab-table tfoot td:first-child { border-radius: 0 0 0 6px; }
+        .rab-table tfoot td:last-child { border-radius: 0 0 6px 0; }
+
+        /* ===== GARANSI BOX ===== */
+        .garansi-box {
+            background: linear-gradient(135deg, #f0faf4, #e8f5ec);
+            border: 1.5px solid var(--secondary);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 16px 0;
+        }
+        .garansi-box h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 10pt;
+            font-weight: 800;
+            color: var(--secondary);
+            margin-bottom: 8px;
+        }
+        .garansi-box ul {
+            list-style: none;
+            padding: 0;
+        }
+        .garansi-box li {
+            padding: 3px 0;
+            font-size: 9.5pt;
+        }
+        .garansi-box li::before {
+            content: '✓';
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            line-height: 18px;
+            text-align: center;
+            background: var(--secondary);
+            color: #fff;
+            border-radius: 50%;
+            font-size: 8pt;
+            font-weight: 700;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        /* ===== SIGNATURE ===== */
+        .signature-section {
+            margin-top: 40px;
+            padding-top: 20px;
+        }
+        .signature-grid {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            text-align: center;
+            margin-top: 16px;
+        }
+        .signature-block {
+            flex: 1;
+            text-align: center;
+        }
+        .signature-block p {
+            text-align: center;
+            margin: 0;
+        }
+        .signature-line {
+            border-bottom: 1.5px solid var(--text-dark);
+            width: 200px;
+            margin: 70px auto 6px;
+        }
+        .signature-name {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 9.5pt;
+            color: var(--text-dark);
+        }
+        .signature-role {
+            font-size: 8.5pt;
+            color: var(--text-muted);
+        }
+
+        /* ===== LIST STYLES ===== */
+        ul.feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        ul.feature-list li {
+            position: relative;
+            padding: 5px 0 5px 24px;
+            font-size: 10pt;
+        }
+        ul.feature-list li::before {
+            content: '►';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-size: 7pt;
+            top: 8px;
+        }
+        ul.warning-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        ul.warning-list li {
+            padding: 6px 0 6px 28px;
+            position: relative;
+            font-size: 10pt;
+        }
+        ul.warning-list li::before {
+            content: '⚠';
+            position: absolute;
+            left: 0;
+            font-size: 13pt;
+            top: 3px;
+        }
+
+        /* ===== PAGE NUMBERING ===== */
+        .page-num {
+            position: absolute;
+            bottom: 12px;
+            right: 18px;
+            font-size: 8pt;
+            color: #999;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .page-footer-text {
+            position: absolute;
+            bottom: 12px;
+            left: 18px;
+            font-size: 7.5pt;
+            color: #bbb;
+        }
+    </style>
+</head>
+<body>
+
+<!-- =================== HALAMAN 1: COVER =================== -->
+<div class="page">
+    <div class="cover-border">
+        <div class="cover-badge">PROPOSAL TEKNIS</div>
+        <div class="cover-logo">
+            <img src="public/images/Logo_BSMI.jpg" alt="Logo Bulan Sabit Merah Indonesia" />
+        </div>
+        <h1>PENGEMBANGAN SISTEM<br>MANAJEMEN ORGANISASI</h1>
+        <h2>(BSMI HUB)</h2>
+        <div class="cover-tagline">
+            "Mewujudkan Transformasi Digital Kemanusiaan yang Transparan, Akuntabel, dan <em>Real-Time</em> untuk Mendukung Efektivitas Gerakan Bulan Sabit Merah Indonesia."
+        </div>
+        <div class="cover-divider"></div>
+        <div class="cover-meta">
+            <strong>Diajukan Oleh</strong>: Tim Pengembang Teknologi BSMI Hub<br>
+            <strong>Tanggal Pengajuan</strong>: 21 Juli 2026<br>
+            <strong>Ditujukan Kepada</strong>: Pengurus Pusat — Bulan Sabit Merah Indonesia<br>
+            <strong>Nomor Dokumen</strong>: PROP/BSMI-HUB/VII/2026
+        </div>
+    </div>
+</div>
+
+<!-- =================== HALAMAN 2: DAFTAR ISI =================== -->
+<div class="page">
+    <div class="page-border">
+        <h1 class="section-title">DAFTAR ISI</h1>
+        <table style="margin-top: 20px; font-size: 10.5pt;">
+            <tbody>
+                <tr style="background: none;">
+                    <td style="font-weight:700; color: var(--primary); width: 30px; text-align:center; padding: 12px 8px;">1</td>
+                    <td style="padding: 12px 8px; font-weight: 600;">Executive Summary & Latar Belakang</td>
+                    <td style="text-align:right; padding: 12px 8px; color: var(--text-muted); width:40px;">3</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:700; color: var(--primary); text-align:center; padding: 12px 8px;">2</td>
+                    <td style="padding: 12px 8px; font-weight: 600;">Tujuan & Manfaat Strategis (Goals)</td>
+                    <td style="text-align:right; padding: 12px 8px; color: var(--text-muted);">3</td>
+                </tr>
+                <tr style="background: none;">
+                    <td style="font-weight:700; color: var(--primary); text-align:center; padding: 12px 8px;">3</td>
+                    <td style="padding: 12px 8px; font-weight: 600;">Matriks Ruang Lingkup Fitur (12 Modul)</td>
+                    <td style="text-align:right; padding: 12px 8px; color: var(--text-muted);">4</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:700; color: var(--primary); text-align:center; padding: 12px 8px;">4</td>
+                    <td style="padding: 12px 8px; font-weight: 600;">Spesifikasi Arsitektur & Teknologi</td>
+                    <td style="text-align:right; padding: 12px 8px; color: var(--text-muted);">5</td>
+                </tr>
+                <tr style="background: none;">
+                    <td style="font-weight:700; color: var(--primary); text-align:center; padding: 12px 8px;">5</td>
+                    <td style="padding: 12px 8px; font-weight: 600;">Tahapan Pengerjaan (Project Timeline)</td>
+                    <td style="text-align:right; padding: 12px 8px; color: var(--text-muted);">6</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:700; color: var(--primary); text-align:center; padding: 12px 8px;">6</td>
+                    <td style="padding: 12px 8px; font-weight: 600;">Estimasi Investasi & Rencana Anggaran Biaya (RAB)</td>
+                    <td style="text-align:right; padding: 12px 8px; color: var(--text-muted);">6</td>
+                </tr>
+                <tr style="background: none;">
+                    <td style="font-weight:700; color: var(--primary); text-align:center; padding: 12px 8px;">7</td>
+                    <td style="padding: 12px 8px; font-weight: 600;">Nilai Tambah & Keuntungan Strategis</td>
+                    <td style="text-align:right; padding: 12px 8px; color: var(--text-muted);">7</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:700; color: var(--primary); text-align:center; padding: 12px 8px;">8</td>
+                    <td style="padding: 12px 8px; font-weight: 600;">Penutup & Lembar Pengesahan</td>
+                    <td style="text-align:right; padding: 12px 8px; color: var(--text-muted);">8</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="margin-top: 50px; padding: 20px; background: var(--accent-bg); border-radius: 10px; border: 1px solid var(--border);">
+            <p style="text-align:center; margin:0; font-size: 9pt; color: var(--text-muted);">
+                Dokumen ini bersifat <strong>Rahasia</strong> dan ditujukan khusus untuk pihak yang berkepentingan.<br>
+                Dilarang menyalin, menyebarluaskan, atau menggunakan isi dokumen ini tanpa izin tertulis dari Tim Pengembang BSMI Hub.
+            </p>
+        </div>
+
+        <span class="page-footer-text">Proposal BSMI Hub — PROP/BSMI-HUB/VII/2026</span>
+        <span class="page-num">2</span>
+    </div>
+</div>
+
+<!-- =================== HALAMAN 3: BAB 1 & 2 =================== -->
+<div class="page">
+    <div class="page-border">
+        <h1 class="section-title">1. EXECUTIVE SUMMARY & LATAR BELAKANG</h1>
+
+        <p>Bulan Sabit Merah Indonesia (BSMI) merupakan organisasi kemanusiaan terdepan yang memegang peranan vital dalam tanggap bencana, pelayanan kesehatan gratis, serta pemberdayaan sosial masyarakat. Seiring dengan meluasnya jaringan cabang, bertambahnya relawan, serta semakin kompleksnya program aksi di lapangan, kebutuhan akan <strong>efisiensi pengelolaan data</strong> menjadi sangat mendesak.</p>
+
+        <p>Pengelolaan administrasi yang masih mengandalkan pencatatan manual atau <em>spreadsheet</em> terpisah kerap memicu beberapa kendala operasional yang signifikan:</p>
+
+        <ul class="warning-list">
+            <li><strong>Risiko Duplikasi & Data Tercecer:</strong> Rekapitulasi relawan dan donasi lambat diproses saat kondisi darurat bencana.</li>
+            <li><strong>Transparansi Stok Logistik:</strong> Kesulitan memantau stok bantuan di gudang secara <em>real-time</em>.</li>
+            <li><strong>Pelaporan Berjenjang:</strong> Membutuhkan waktu lama untuk menyusun laporan keuangan dan aksi lapangan dari cabang ke pusat.</li>
+        </ul>
+
+        <div class="callout">
+            <p><strong>BSMI Hub</strong> hadir sebagai solusi sistem terintegrasi berbasis web untuk mendigitalisasi seluruh rantai operasional BSMI — mulai dari pendataan anggota, manajemen tanggap bencana, kontrol logistik, hingga transparansi kas keuangan secara <em>real-time</em>.</p>
+        </div>
+
+        <h1 class="section-title" style="margin-top: 24px;">2. TUJUAN & MANFAAT STRATEGIS</h1>
+
+        <div class="goal-cards">
+            <div class="goal-card">
+                <h4>🌐 Accessibility 24/7</h4>
+                <p>Akses berbasis web dari PC, Tablet, & Smartphone kapan saja.</p>
+            </div>
+            <div class="goal-card">
+                <h4>🔒 Zero Data Loss</h4>
+                <p>Database terpusat aman dengan skema backup otomatis.</p>
+            </div>
+            <div class="goal-card">
+                <h4>📦 Real-Time Logistics</h4>
+                <p>Monitoring stok bantuan & donasi secara presisi.</p>
+            </div>
+        </div>
+
+        <ul class="feature-list">
+            <li><strong>Digitalisasi Aset Data Anggota & Relawan:</strong> Mengelola profil, riwayat pelatihan, dan spesialisasi keahlian relawan secara terstruktur dan terpusat.</li>
+            <li><strong>Respon Cepat Tanggap Bencana:</strong> Pemetaan potensi relawan dan logistik siap pakai di setiap wilayah secara instan.</li>
+            <li><strong>Akuntabilitas Keuangan & Donasi:</strong> Pencatatan arus kas operasional, iuran anggota, dan transparansi laporan donatur secara otomatis.</li>
+            <li><strong>Efisiensi Pengambilan Keputusan:</strong> Dashboard eksekutif yang menyajikan grafik statistik analisis dalam satu layar.</li>
+        </ul>
+
+        <span class="page-footer-text">Proposal BSMI Hub — PROP/BSMI-HUB/VII/2026</span>
+        <span class="page-num">3</span>
+    </div>
+</div>
+
+<!-- =================== HALAMAN 4: BAB 3 - FITUR =================== -->
+<div class="page">
+    <div class="page-border">
+        <h1 class="section-title">3. MATRIKS RUANG LINGKUP FITUR</h1>
+
+        <p>Sistem dirancang dengan arsitektur <strong>12 Modul Utama</strong> yang saling terinterkoneksi untuk mengakomodir seluruh kebutuhan operasional organisasi:</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:36px">No</th>
+                    <th style="width:170px">Modul Sistem</th>
+                    <th>Deskripsi Fungsi Operasional</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>01</td>
+                    <td><strong>Dashboard Analitik</strong></td>
+                    <td><em>Central Command Center</em>: Menampilkan ringkasan data anggota, stok logistik, dan laporan keuangan dalam bentuk grafik interaktif.</td>
+                </tr>
+                <tr>
+                    <td>02</td>
+                    <td><strong>Profil Organisasi</strong></td>
+                    <td>Pengaturan identitas cabang, visi-misi, susunan pengurus, dan konfigurasi legalitas organisasi.</td>
+                </tr>
+                <tr>
+                    <td>03</td>
+                    <td><strong>Database Anggota & Relawan</strong></td>
+                    <td>Profiling lengkap (NIK, Gol. Darah, Keahlian/Spesialisasi, Riwayat Diklatsar, Status Mobilisasi).</td>
+                </tr>
+                <tr>
+                    <td>04</td>
+                    <td><strong>Struktur Pengurus & Divisi</strong></td>
+                    <td>Pemetaan hierarki jabatan, masa bakti, dan delegasi wewenang kerja di tingkat pusat maupun cabang.</td>
+                </tr>
+                <tr>
+                    <td>05</td>
+                    <td><strong>Program & Kegiatan</strong></td>
+                    <td>Penjadwalan aksi kemanusiaan, penugasan personel lapangan, serta dokumentasi laporan kegiatan.</td>
+                </tr>
+                <tr>
+                    <td>06</td>
+                    <td><strong>Penerima Manfaat</strong></td>
+                    <td>Pendataan korban bencana atau masyarakat penerima bantuan guna mencegah tumpang tindih distribusi.</td>
+                </tr>
+                <tr>
+                    <td>07</td>
+                    <td><strong>Inventaris & Logistik</strong></td>
+                    <td>Pencatatan barang masuk/keluar gudang, <em>barcode/SKU tracking</em>, serta <em>alert</em> saat stok menipis.</td>
+                </tr>
+                <tr>
+                    <td>08</td>
+                    <td><strong>Keuangan & Iuran</strong></td>
+                    <td>Buku Kas otomatis, manajemen iuran wajib anggota, donasi terikat/tidak terikat, dan rekapan pengeluaran.</td>
+                </tr>
+                <tr>
+                    <td>09</td>
+                    <td><strong>Diklatsar & Sertifikasi</strong></td>
+                    <td>Pendataan modul pelatihan internal, status kelulusan peserta, dan arsip sertifikat digital.</td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td><strong>Pusat Informasi</strong></td>
+                    <td><em>Internal Notice Board</em> untuk penyebaran instruksi resmi, berita organisasi, dan SOP kebencanaan.</td>
+                </tr>
+                <tr>
+                    <td>11</td>
+                    <td><strong>Pelaporan & Auto-Export</strong></td>
+                    <td>Kemampuan mencetak laporan periodik dalam format <strong>PDF</strong> dan <strong>Excel</strong> secara instan.</td>
+                </tr>
+                <tr>
+                    <td>12</td>
+                    <td><strong>Role-Based Access Control</strong></td>
+                    <td>Keamanan multi-level: Hak akses berjenjang (Super Admin, Pengurus Pusat, Admin Cabang, Relawan).</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <span class="page-footer-text">Proposal BSMI Hub — PROP/BSMI-HUB/VII/2026</span>
+        <span class="page-num">4</span>
+    </div>
+</div>
+
+<!-- =================== HALAMAN 5: BAB 4 - TEKNOLOGI =================== -->
+<div class="page">
+    <div class="page-border">
+        <h1 class="section-title">4. SPESIFIKASI ARSITEKTUR & TEKNOLOGI</h1>
+
+        <p>Aplikasi ini dibangun menggunakan <em>Tech-Stack</em> enterprise terkini untuk menjamin stabilitas, kecepatan tinggi, dan kemudahan perawatan jangka panjang:</p>
+
+        <div class="tech-grid">
+            <div class="tech-item">
+                <div class="tech-badge">BE</div>
+                <div class="tech-info">
+                    <h4>Laravel 12</h4>
+                    <p>Framework PHP enterprise standard dengan tingkat keamanan dan performa tinggi.</p>
+                </div>
+            </div>
+            <div class="tech-item">
+                <div class="tech-badge">FE</div>
+                <div class="tech-info">
+                    <h4>React.js & Inertia.js</h4>
+                    <p>Menyajikan pengalaman UI ultra-cepat tanpa loading antar halaman.</p>
+                </div>
+            </div>
+            <div class="tech-item">
+                <div class="tech-badge green">UI</div>
+                <div class="tech-info">
+                    <h4>Tailwind CSS</h4>
+                    <p>Interface modern, bersih, dan 100% responsif di smartphone & tablet.</p>
+                </div>
+            </div>
+            <div class="tech-item">
+                <div class="tech-badge green">DB</div>
+                <div class="tech-info">
+                    <h4>MySQL / MariaDB</h4>
+                    <p>Database relasional handal dengan high-availability & performa optimal.</p>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="sub-title">Arsitektur Keamanan Sistem</h2>
+        <p>Keamanan menjadi prioritas utama dalam pengembangan BSMI Hub. Berikut adalah lapisan keamanan yang diterapkan:</p>
+
+        <ul class="feature-list">
+            <li><strong>Enkripsi Data (AES-256):</strong> Seluruh data sensitif (password, informasi pribadi anggota) dienkripsi menggunakan standar industri.</li>
+            <li><strong>Role-Based Access Control (RBAC):</strong> Setiap pengguna hanya dapat mengakses fitur sesuai dengan peran dan hak akses yang ditetapkan.</li>
+            <li><strong>Proteksi CSRF & XSS:</strong> Sistem dilengkapi dengan perlindungan terhadap serangan <em>Cross-Site Request Forgery</em> dan <em>Cross-Site Scripting</em>.</li>
+            <li><strong>Rate Limiting & Throttling:</strong> Pencegahan terhadap serangan <em>brute-force</em> login dan <em>DDoS</em>.</li>
+            <li><strong>Audit Log:</strong> Pencatatan seluruh aktivitas pengguna untuk keperluan investigasi dan akuntabilitas.</li>
+        </ul>
+
+        <h2 class="sub-title">Infrastruktur Hosting & Deployment</h2>
+        <p>Sistem di-hosting menggunakan infrastruktur <em>cloud</em> yang menjamin ketersediaan tinggi (<em>high availability</em>) dengan spesifikasi:</p>
+
+        <ul class="feature-list">
+            <li><strong>Web Server:</strong> LiteSpeed / Apache dengan SSL Certificate (HTTPS) untuk koneksi aman.</li>
+            <li><strong>Domain Resmi:</strong> Menggunakan domain organisasi (bsmi-banten.org) dengan sertifikat SSL aktif.</li>
+            <li><strong>Backup Otomatis:</strong> Sistem <em>backup</em> harian yang menjamin pemulihan data jika terjadi insiden.</li>
+            <li><strong>Uptime Guarantee:</strong> Garansi server aktif 99.9% sepanjang tahun.</li>
+        </ul>
+
+        <span class="page-footer-text">Proposal BSMI Hub — PROP/BSMI-HUB/VII/2026</span>
+        <span class="page-num">5</span>
+    </div>
+</div>
+
+<!-- =================== HALAMAN 6: BAB 5 & 6 - TIMELINE & RAB =================== -->
+<div class="page">
+    <div class="page-border">
+        <h1 class="section-title">5. TAHAPAN PENGERJAAN (PROJECT TIMELINE)</h1>
+
+        <p>Total estimasi waktu pengerjaan proyek adalah <strong>6 Minggu</strong> dengan pembagian fase sebagai berikut:</p>
+
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-left">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-week">MINGGU 1</div>
+                </div>
+                <div class="timeline-right">
+                    <h4>Analisis Kebutuhan & Finalisasi Database Schema</h4>
+                    <p>Pengumpulan data, wawancara kebutuhan pengguna, perancangan struktur database, dan wireframing UI.</p>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-left">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-week">MINGGU 2</div>
+                </div>
+                <div class="timeline-right">
+                    <h4>Development Backend (API, Auth, Roles, & Database)</h4>
+                    <p>Pembangunan sistem otentikasi, hak akses multi-level, dan seluruh endpoint API.</p>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-left">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-week">MINGGU 3–4</div>
+                </div>
+                <div class="timeline-right">
+                    <h4>Development Frontend (Dashboard, UI Modul, & Integrasi)</h4>
+                    <p>Pembuatan antarmuka interaktif untuk seluruh 12 modul, grafik dashboard, dan responsivitas mobile.</p>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-left">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-week">MINGGU 5</div>
+                </div>
+                <div class="timeline-right">
+                    <h4>Quality Assurance (Testing Bug, Security Audit, & Fitur)</h4>
+                    <p>Pengujian menyeluruh, perbaikan bug, audit keamanan, dan optimasi performa.</p>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-left">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-week">MINGGU 6</div>
+                </div>
+                <div class="timeline-right">
+                    <h4>Deployment, Pelatihan User (Training), & Handover</h4>
+                    <p>Migrasi ke server produksi, pelatihan pengurus, dokumentasi manual book, dan serah terima resmi.</p>
+                </div>
+            </div>
+        </div>
+
+        <h1 class="section-title" style="margin-top: 18px;">6. ESTIMASI INVESTASI & RAB</h1>
+
+        <table class="rab-table">
+            <thead>
+                <tr>
+                    <th style="width:36px">No</th>
+                    <th>Komponen Pekerjaan</th>
+                    <th style="width:140px; text-align:right">Estimasi Biaya</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><strong>UI/UX Design & Prototyping</strong><br><span style="font-size:8.5pt;color:#888">Design System, Responsive Mobile Layout, Wireframe</span></td>
+                    <td>Rp 5.000.000</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><strong>Backend Engineering</strong><br><span style="font-size:8.5pt;color:#888">Laravel 12 Engine, RBAC Security, Database Architecture</span></td>
+                    <td>Rp 12.000.000</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><strong>Frontend Engineering</strong><br><span style="font-size:8.5pt;color:#888">React.js, Inertia.js, Dynamic Analytics Dashboard</span></td>
+                    <td>Rp 10.000.000</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td><strong>Cloud Infrastructure Setup (1 Tahun)</strong><br><span style="font-size:8.5pt;color:#888">Domain, SSL Certificate, Cloud Hosting & Database Server</span></td>
+                    <td>Rp 1.500.000</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td><strong>Testing, Training, & Documentation</strong><br><span style="font-size:8.5pt;color:#888">Manual Book, User Training Session, Handover</span></td>
+                    <td><em>Termasuk</em></td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2">ESTIMASI TOTAL INVESTASI</td>
+                    <td style="text-align:right">Rp 28.500.000</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <span class="page-footer-text">Proposal BSMI Hub — PROP/BSMI-HUB/VII/2026</span>
+        <span class="page-num">6</span>
+    </div>
+</div>
+
+<!-- =================== HALAMAN 7: BAB 7 - NILAI TAMBAH =================== -->
+<div class="page">
+    <div class="page-border">
+        <h1 class="section-title">7. NILAI TAMBAH & KEUNTUNGAN STRATEGIS</h1>
+
+        <ul class="feature-list">
+            <li><strong>Pemeliharaan Mudah:</strong> Menggunakan teknologi <em>open-source</em> berstandar global yang didukung oleh komunitas pengembang raksasa, sehingga sistem tidak mudah <em>outdated</em> (usang).</li>
+            <li><strong>Siap Di-Skala (Scalable):</strong> Struktur database dan arsitektur aplikasi telah dipersiapkan jika ke depannya BSMI ingin mengembangkan sistem ini menjadi Aplikasi Android/iOS secara <em>native</em>.</li>
+            <li><strong>Pengambilan Keputusan Cepat:</strong> Pimpinan cabang/pusat dapat langsung melihat kondisi riil keuangan, stok logistik, dan data anggota tanpa harus menunggu staf membuat rekapan Excel di akhir bulan.</li>
+            <li><strong>Keamanan Berlapis:</strong> Sistem dilengkapi dengan enkripsi data, hak akses berjenjang (<em>Role-Based Access Control</em>), dan proteksi terhadap serangan siber umum (SQL Injection, XSS, CSRF).</li>
+            <li><strong>Hemat Biaya Jangka Panjang:</strong> Mengurangi kebutuhan akan banyaknya staf administrasi dan meminimalisir pembelian perangkat lunak lisensi berbayar.</li>
+        </ul>
+
+        <div class="garansi-box">
+            <h3>📋 GARANSI & LAYANAN TAMBAHAN</h3>
+            <ul>
+                <li><strong>Free Maintenance & Bug Fixing</strong> selama 3 bulan pertama pasca <em>Handover</em>.</li>
+                <li><strong>Backup Data Rutin</strong> dengan sistem redundansi terproteksi.</li>
+                <li><strong>Support Teknis Prioritas</strong> via WhatsApp/Email selama masa garansi.</li>
+                <li><strong>Update Keamanan</strong> patch & update framework selama masa garansi.</li>
+            </ul>
+        </div>
+
+        <h2 class="sub-title">Perbandingan: Sebelum vs Sesudah BSMI Hub</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 30%;">Aspek</th>
+                    <th style="width: 35%;">Sebelum (Manual)</th>
+                    <th style="width: 35%;">Sesudah (BSMI Hub)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="font-weight:600; color: var(--text-dark);">Pendataan Anggota</td>
+                    <td>Spreadsheet terpisah, rawan duplikasi</td>
+                    <td style="color: var(--secondary); font-weight:600;">Database terpusat, pencarian instan</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600; color: var(--text-dark);">Monitoring Logistik</td>
+                    <td>Rekap manual akhir bulan</td>
+                    <td style="color: var(--secondary); font-weight:600;">Real-time dengan alert otomatis</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600; color: var(--text-dark);">Laporan Keuangan</td>
+                    <td>Butuh 3-5 hari kerja</td>
+                    <td style="color: var(--secondary); font-weight:600;">Instan (PDF/Excel 1 klik)</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600; color: var(--text-dark);">Akses Data</td>
+                    <td>Hanya dari komputer kantor</td>
+                    <td style="color: var(--secondary); font-weight:600;">Kapan saja, dari mana saja</td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600; color: var(--text-dark);">Keamanan Data</td>
+                    <td>File lokal rentan hilang/rusak</td>
+                    <td style="color: var(--secondary); font-weight:600;">Enkripsi + backup harian</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <span class="page-footer-text">Proposal BSMI Hub — PROP/BSMI-HUB/VII/2026</span>
+        <span class="page-num">7</span>
+    </div>
+</div>
+
+<!-- =================== HALAMAN 8: PENUTUP & TANDA TANGAN =================== -->
+<div class="page">
+    <div class="page-border">
+        <h1 class="section-title">8. PENUTUP</h1>
+
+        <p>Demikian proposal pengembangan <strong>Sistem Manajemen Organisasi (BSMI Hub)</strong> ini kami ajukan dengan penuh keyakinan. Kami percaya bahwa modernisasi infrastruktur digital ini akan membawa dampak positif yang masif bagi efisiensi gerakan kemanusiaan Bulan Sabit Merah Indonesia.</p>
+
+        <p>Dengan diimplementasikannya sistem ini, diharapkan seluruh proses operasional — mulai dari pendataan anggota, manajemen logistik, pengelolaan keuangan, hingga pelaporan — dapat berjalan secara transparan, akuntabel, dan efisien. Hal ini pada akhirnya akan memperkuat kapasitas organisasi dalam memberikan pelayanan kemanusiaan yang lebih cepat, tepat, dan berdampak luas kepada masyarakat yang membutuhkan.</p>
+
+        <p>Besar harapan kami proposal ini dapat dipertimbangkan dan disetujui demi kemajuan bersama. Kami siap untuk melakukan presentasi lebih lanjut serta menjawab segala pertanyaan yang berkaitan dengan proposal ini.</p>
+
+        <div class="callout green">
+            <p><strong>Hormat kami,</strong><br>Tim Pengembang BSMI Hub — Siap Melayani Transformasi Digital Kemanusiaan Indonesia.</p>
+        </div>
+
+        <!-- LEMBAR PENGESAHAN -->
+        <div class="signature-section">
+            <h2 class="sub-title" style="text-align:center; border:none;">LEMBAR PENGESAHAN</h2>
+            <p style="text-align:center; font-size: 9pt; color: var(--text-muted); margin-bottom: 10px;">
+                Dengan menandatangani dokumen ini, kedua belah pihak menyatakan persetujuan atas ruang lingkup,<br>timeline, dan estimasi biaya yang tertera dalam proposal ini.
+            </p>
+            <div class="signature-grid">
+                <div class="signature-block">
+                    <p style="font-size:9.5pt; color:#888;">Diajukan Oleh,</p>
+                    <div class="signature-line"></div>
+                    <p class="signature-name">(...............................)</p>
+                    <p class="signature-role">Lead Developer / Project Manager</p>
+                    <p class="signature-role">Tim Pengembang BSMI Hub</p>
+                </div>
+                <div class="signature-block">
+                    <p style="font-size:9.5pt; color:#888;">Menyetujui,</p>
+                    <div class="signature-line"></div>
+                    <p class="signature-name">(...............................)</p>
+                    <p class="signature-role">Perwakilan Pengurus</p>
+                    <p class="signature-role">Bulan Sabit Merah Indonesia</p>
+                </div>
+            </div>
+        </div>
+
+        <span class="page-footer-text">Proposal BSMI Hub — PROP/BSMI-HUB/VII/2026</span>
+        <span class="page-num">8</span>
+    </div>
+</div>
+
+</body>
+</html>

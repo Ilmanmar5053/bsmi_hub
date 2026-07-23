@@ -10,6 +10,7 @@ class Donation extends Model
     protected $fillable = [
         'donor_name', 'donor_phone', 'type', 'amount', 'goods_description',
         'date', 'beneficiary_id', 'program_id', 'status', 'notes', 'receipt_path',
+        'address', 'province', 'city', 'district', 'village', 'branch_id'
     ];
 
     protected $casts = [

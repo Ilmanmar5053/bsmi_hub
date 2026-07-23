@@ -18,7 +18,7 @@ export default function VolunteerRegister() {
     const [submitted, setSubmitted] = useState(false);
     const { data, setData, post, processing, errors } = useForm({
         name: '', email: '', phone: '', address: '', birth_date: '',
-        job_category: '', job_type: '', id_card: null as File | null, skills: '', motivation: '',
+        job_category: '', job_type: '', id_card: null as File | null, photo: null as File | null, skills: '', motivation: '',
         gender: '', golongan_darah: '', kesiapan_mobilisasi: false, ukuran_baju: '',
         emergency_contact: '', emergency_phone: '', regional_cabang: '', pendidikan_terakhir: '',
         jurusan: '', status_keluarga: '', agama: '', jumlah_tanggungan: ''
@@ -62,11 +62,15 @@ export default function VolunteerRegister() {
             <div className="bg-emerald-600 py-12 px-4 sm:px-6 relative overflow-hidden">
                 <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
                 <div className="max-w-2xl mx-auto relative z-10 text-center">
-                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 overflow-hidden p-2">
+                    <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center">
                         {organization?.logo_url ? (
-                            <img src={organization.logo_url} alt="Logo" className="w-full h-full object-contain drop-shadow-md" />
+                            <img 
+                                src={organization.logo_url} 
+                                alt="Logo" 
+                                className="w-full h-full object-contain rounded-xl filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)] drop-shadow-[0_-1px_1px_rgba(255,255,255,0.2)]" 
+                            />
                         ) : (
-                            <Stethoscope size={32} className="text-white" />
+                            <Stethoscope size={32} className="text-white drop-shadow-md" />
                         )}
                     </div>
                     <h1 className="text-3xl font-bold text-white mb-2">Formulir Relawan {organization?.name ? organization.name.split(' – ')[0] : 'BSMI'}</h1>
@@ -274,6 +278,17 @@ export default function VolunteerRegister() {
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Format: JPG, PNG, PDF. Maksimal 2MB.</p>
                                 {errors.id_card && <p className="text-red-500 text-xs mt-1">{errors.id_card}</p>}
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Pas Foto Setengah Badan (Opsional)</label>
+                                <input 
+                                    type="file" 
+                                    accept=".jpg,.jpeg,.png,.webp"
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100" 
+                                    onChange={e => setData('photo', e.target.files ? e.target.files[0] : null)} 
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Format: JPG, PNG. Maksimal 2MB.</p>
+                                {errors.photo && <p className="text-red-500 text-xs mt-1">{errors.photo}</p>}
                             </div>
                             <div className="col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Keahlian & Pengalaman *</label>
