@@ -12,6 +12,11 @@ class Member extends Model
 {
     use SoftDeletes, LogsActivity;
 
+    protected static function booted()
+    {
+        static::addGlobalScope(new \App\Models\Scopes\RegionalCabangScope);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -51,16 +56,10 @@ class Member extends Model
         return $this->hasMany(ProgramParticipant::class);
     }
 
-    public function getPhotoUrlAttribute(): string
+    public function getPhotoUrlAttribute(): ?string
     {
-        if ($this->photo_path) {
-            return asset('storage/' . $this->photo_path);
-        }
-
-        $bg = $this->gender === 'P' ? 'fbcfe8' : 'bfdbfe';
-        $color = $this->gender === 'P' ? 'be185d' : '1d4ed8';
-        $name = urlencode($this->nama_lengkap);
-        
-        return "https://ui-avatars.com/api/?name={$name}&background={$bg}&color={$color}&rounded=true&bold=true";
+        return $this->photo_path
+            ? asset('storage/' . $this->photo_path)
+            : null;
     }
 }

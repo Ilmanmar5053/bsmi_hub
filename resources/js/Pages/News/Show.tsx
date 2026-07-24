@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { ChevronLeft, Calendar as CalendarIcon, Clock, Share2, Tag, ChevronRight, ChevronLeft as ChevronLeftIcon, Link as LinkIcon, Check } from 'lucide-react';
+import { Modal } from '@/Components/Shared';
+import { ChevronLeft, Calendar as CalendarIcon, Clock, Share2, Tag, ChevronRight, ChevronLeft as ChevronLeftIcon, Link as LinkIcon, Check, Maximize2 } from 'lucide-react';
 
 export default function NewsShow({ newsItem, relatedNews }: any) {
     const images = typeof newsItem.images === 'string' ? JSON.parse(newsItem.images) : (newsItem.images || []);
@@ -9,6 +10,7 @@ export default function NewsShow({ newsItem, relatedNews }: any) {
     // Faded Image Slideshow State
     const [currentSlide, setCurrentSlide] = useState(0);
     const [copied, setCopied] = useState(false);
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
     const handleCopyLink = () => {
         const url = window.location.href;
@@ -116,23 +118,33 @@ export default function NewsShow({ newsItem, relatedNews }: any) {
                                         key={idx}
                                         src={img} 
                                         alt={`Slide ${idx + 1}`}
-                                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                                            currentSlide === idx ? 'opacity-100' : 'opacity-0'
+                                        className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out group-hover:scale-105 ${
+                                            currentSlide === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'
                                         }`}
                                     />
                                 ))}
                                 
                                 {/* Overlay gradient for better look */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent z-20 pointer-events-none"></div>
+                                
+                                {/* Hover overlay for zoom */}
+                                <div 
+                                    className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity z-30 cursor-pointer flex items-center justify-center"
+                                    onClick={() => setIsLightboxOpen(true)}
+                                >
+                                    <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full text-white transform scale-90 group-hover:scale-100 transition-transform">
+                                        <Maximize2 size={32} />
+                                    </div>
+                                </div>
                                 
                                 {/* Slideshow controls & indicator */}
                                 {images.length > 1 && (
                                     <>
-                                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10">
+                                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-40">
                                             {images.map((_: any, idx: number) => (
                                                 <button
                                                     key={idx}
-                                                    onClick={() => setCurrentSlide(idx)}
+                                                    onClick={(e) => { e.stopPropagation(); setCurrentSlide(idx); }}
                                                     className={`w-2 h-2 rounded-full transition-all ${
                                                         currentSlide === idx ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/80'
                                                     }`}
@@ -214,6 +226,32 @@ export default function NewsShow({ newsItem, relatedNews }: any) {
                     </div>
                 )}
             </div>
+
+            {/* Lightbox Modal */}
+            <Modal isOpen={isLightboxOpen} onClose={() => setIsLightboxOpen(false)} title="Lihat Foto" size="xl">
+                {images && images.length > 0 && (
+                    <div className="p-2">
+                        <img 
+                            src={images[currentSlide]} 
+                            alt={`Slide ${currentSlide + 1}`}
+                            className="w-full h-auto max-h-[75vh] object-contain rounded-xl bg-gray-50 dark:bg-gray-900"
+                        />
+                        {images.length > 1 && (
+                            <div className="flex justify-center gap-2 mt-4 pb-2">
+                                {images.map((_: any, idx: number) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setCurrentSlide(idx)}
+                                        className={`w-2 h-2 rounded-full transition-all ${
+                                            currentSlide === idx ? 'bg-theme-600 w-6' : 'bg-gray-300 hover:bg-gray-400'
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </Modal>
         </AppLayout>
     );
 }

@@ -76,7 +76,7 @@ class LogPageViews
         if (str_starts_with($path, 'delivery-notes')) return 'Surat Jalan';
         if (str_starts_with($path, 'news')) return 'Berita & Informasi';
         if (str_starts_with($path, 'dues')) return 'Iuran';
-        if (str_starts_with($path, 'finance')) return 'Keuangan';
+        if (str_starts_with($path, 'finance')) return 'Arus Kas';
         if (str_starts_with($path, 'volunteers')) return 'Relawan';
         if (str_starts_with($path, 'diklatsar')) return 'Diklatsar';
         if (str_starts_with($path, 'reports')) return 'Pelaporan';

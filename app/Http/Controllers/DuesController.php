@@ -77,6 +77,28 @@ class DuesController extends Controller
         $members = Member::where('status_aktif', true)->orderBy('nama_lengkap')->get(['id', 'nama_lengkap', 'no_induk_anggota']);
         $years   = DuesPeriod::distinct()->pluck('year')->sortDesc()->values();
 
+        $dashboardStats = [
+            'total_paid' => 0,
+            'total_unpaid' => 0,
+        ];
+        
+        if ($currentPeriod) {
+            $dashboardStats['total_paid'] = DuesPayment::where('dues_period_id', $currentPeriod->id)->where('status', 'paid')->sum('amount');
+            $dashboardStats['total_unpaid'] = DuesPayment::where('dues_period_id', $currentPeriod->id)->where('status', 'unpaid')->sum('amount');
+        }
+
+        $lastPeriods = DuesPeriod::orderByDesc('year')->orderByDesc('month')->take(6)->get()->reverse();
+        $chartData = $lastPeriods->map(function ($p) {
+            $paid = $p->payments()->where('status', 'paid')->sum('amount');
+            $unpaid = $p->payments()->where('status', 'unpaid')->sum('amount');
+            $monthNames = ["", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+            return [
+                'period' => $monthNames[$p->month] . ' ' . substr($p->year, 2),
+                'lunas' => (float) $paid,
+                'belum_lunas' => (float) $unpaid,
+            ];
+        })->values()->toArray();
+
         return Inertia::render('Dues/Index', [
             'periods'       => $periods, // paginated, will have .data
             'currentPeriod' => $currentPeriod ? [
@@ -90,6 +112,8 @@ class DuesController extends Controller
             'members'       => $members,
             'years'         => $years,
             'filters'       => array_merge($filters, ['period_id' => $currentPeriod?->id]),
+            'dashboardStats'=> $dashboardStats,
+            'chartData'     => $chartData,
         ]);
     }
 
@@ -172,6 +196,45 @@ class DuesController extends Controller
     }
 
     // ── Mark Payment as Paid ─────────────────────────────────────────────────
+
+    public function bulkMarkPaid(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'payment_ids' => 'required|array',
+            'payment_ids.*' => 'integer|exists:dues_payments,id',
+            'paid_date' => 'required|date',
+        ]);
+
+        try {
+            DB::transaction(function () use ($validated) {
+                $payments = DuesPayment::with(['period', 'member'])->whereIn('id', $validated['payment_ids'])->where('status', 'unpaid')->get();
+                
+                foreach ($payments as $payment) {
+                    $payment->update([
+                        'status'    => 'paid',
+                        'paid_date' => $validated['paid_date'],
+                    ]);
+
+                    $period = $payment->period;
+                    $member = $payment->member;
+                    $desc = "Iuran {$member->nama_lengkap} - Periode {$period->month}/{$period->year}";
+
+                    FinancialTransaction::create([
+                        'type' => 'pemasukan',
+                        'amount' => $payment->amount,
+                        'category' => 'Iuran Anggota',
+                        'description' => $desc,
+                        'date' => $validated['paid_date'],
+                        'created_by' => auth()->id(),
+                    ]);
+                }
+            });
+
+            return back()->with('success', count($validated['payment_ids']) . ' Iuran berhasil ditandai sebagai lunas.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal memperbarui status pembayaran massal: ' . $e->getMessage());
+        }
+    }
 
     public function markPaid(Request $request, DuesPayment $payment): RedirectResponse
     {

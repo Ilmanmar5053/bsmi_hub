@@ -5,6 +5,58 @@ import { Modal } from '@/Components/Shared';
 import { Plus, Search, Image as ImageIcon, ChevronRight, Clock, Trash2, Newspaper, Edit } from 'lucide-react';
 import { confirmAction } from '@/Utils/swal';
 
+const CountdownTimer = ({ expiresAt }: { expiresAt: string | null }) => {
+    const [timeLeft, setTimeLeft] = React.useState<{ hours: number; minutes: number; seconds: number } | null>(null);
+    const [isExpired, setIsExpired] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!expiresAt) return;
+        // Remove timezone indicator (Z or +00:00) so JS parses it as local time
+        const localTimeStr = expiresAt.substring(0, 19);
+        const targetDate = new Date(localTimeStr).getTime();
+        
+        const updateCountdown = () => {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance < 0) {
+                setIsExpired(true);
+                setTimeLeft(null);
+                return;
+            }
+
+            setTimeLeft({
+                hours: Math.floor(distance / (1000 * 60 * 60)),
+                minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+                seconds: Math.floor((distance % (1000 * 60)) / 1000),
+            });
+        };
+
+        updateCountdown();
+        const interval = setInterval(updateCountdown, 1000);
+        return () => clearInterval(interval);
+    }, [expiresAt]);
+
+    if (!expiresAt) return null;
+
+    if (isExpired) {
+        return (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-md mt-1">
+                Selesai
+            </span>
+        );
+    }
+
+    if (!timeLeft) return null;
+
+    return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-md mt-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+            Sedang Berlangsung ({String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')})
+        </span>
+    );
+};
+
 // Helper function to compress images
 const compressImage = (file: File, maxWidth = 1920, quality = 0.7): Promise<File> => {
     return new Promise((resolve) => {
@@ -62,6 +114,7 @@ export default function NewsIndex({ news, filters }: any) {
         title: '',
         category: 'Berita',
         content: '',
+        expires_at: '',
         images: [] as File[],
     });
 
@@ -87,6 +140,7 @@ export default function NewsIndex({ news, filters }: any) {
             title: item.title,
             category: item.category,
             content: item.content,
+            expires_at: item.expires_at ? item.expires_at.slice(0, 16) : '',
             images: [], // Images are managed separately or replaced entirely
             _method: 'put'
         } as any);
@@ -122,7 +176,9 @@ export default function NewsIndex({ news, filters }: any) {
         return new Intl.DateTimeFormat('id-ID', {
             day: 'numeric',
             month: 'short',
-            year: 'numeric'
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         }).format(date);
     };
 
@@ -130,37 +186,35 @@ export default function NewsIndex({ news, filters }: any) {
         <AppLayout>
             <Head title="Berita & Informasi" />
             
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Portal Berita</h1>
-                        <p className="text-gray-500 mt-2 text-sm">Informasi, Pengumuman, dan Dokumentasi Kegiatan BSMI</p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                        <form onSubmit={handleSearch} className="relative w-full sm:w-64">
-                            <input
-                                type="text"
-                                placeholder="Cari berita..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-theme-500 transition-all dark:text-white"
-                            />
-                            <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-                        </form>
-                        
-                        {canManageNews && (
-                            <button
-                                onClick={handleOpenAdd}
-                                className="flex items-center justify-center gap-2 px-4 py-2 bg-theme-600 hover:bg-theme-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm"
-                            >
-                                <Plus size={16} />
-                                Tambah Berita
-                            </button>
-                        )}
-                    </div>
+            <div className="page-header">
+                <div>
+                    <h1 className="page-title">Portal Berita</h1>
+                    <p className="page-subtitle">Informasi, Pengumuman, dan Dokumentasi Kegiatan BSMI</p>
                 </div>
+
+                <div className="flex gap-2">
+                    <form onSubmit={handleSearch} className="relative w-full sm:w-64">
+                        <input
+                            type="text"
+                            placeholder="Cari berita..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-theme-500 transition-all dark:text-white"
+                        />
+                        <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                    </form>
+                    
+                    {canManageNews && (
+                        <button
+                            onClick={handleOpenAdd}
+                            className="btn-primary flex items-center gap-2 whitespace-nowrap"
+                        >
+                            <Plus size={16} />
+                            <span className="hidden sm:inline">Tambah Berita</span>
+                        </button>
+                    )}
+                </div>
+            </div>
 
                 {/* Categories */}
                 <div className="flex overflow-x-auto pb-4 mb-6 gap-2 hide-scrollbar">
@@ -208,17 +262,37 @@ export default function NewsIndex({ news, filters }: any) {
                                     </div>
                                     
                                     <div className="p-5 flex-1 flex flex-col">
-                                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock size={14} />
-                                                {formatDate(item.published_at)}
-                                            </div>
-                                            {images && images.length > 1 && (
+                                        <div className="flex flex-col mb-3">
+                                            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                                                 <div className="flex items-center gap-1.5">
-                                                    <ImageIcon size={14} />
-                                                    {images.length} Foto
+                                                    <Clock size={14} />
+                                                    {formatDate(item.published_at)}
                                                 </div>
-                                            )}
+                                                {images && images.length > 1 && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <ImageIcon size={14} />
+                                                        {images.length} Foto
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="mt-2 flex flex-col gap-1">
+                                                <div className="flex justify-between items-start">
+                                                    <div className="text-xs text-gray-500">
+                                                        Editor: <span className="font-semibold text-gray-700 dark:text-gray-300">{item.author ? item.author.name : 'Sistem'}</span>
+                                                    </div>
+                                                    {item.expires_at && (
+                                                        <div className="text-xs text-gray-500 text-right">
+                                                            Batas Tayang:<br/>
+                                                            <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                                                {formatDate(item.expires_at.substring(0, 19))}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-end">
+                                                    <CountdownTimer expiresAt={item.expires_at} />
+                                                </div>
+                                            </div>
                                         </div>
                                         
                                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 leading-tight group-hover:text-theme-600 transition-colors">
@@ -271,7 +345,7 @@ export default function NewsIndex({ news, filters }: any) {
                         <p className="text-gray-500 text-sm">Tidak ada artikel berita yang ditemukan untuk pencarian atau kategori ini.</p>
                     </div>
                 )}
-            </div>
+
 
             {/* Create / Edit News Modal */}
             <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title={editingId ? "Edit Berita" : "Buat Berita Baru"} size="xl">
@@ -299,6 +373,17 @@ export default function NewsIndex({ news, filters }: any) {
                             <option value="Kegiatan">Kegiatan</option>
                             <option value="Informasi">Informasi</option>
                         </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Batas Waktu Tayang (Opsional)</label>
+                        <input
+                            type="datetime-local"
+                            value={data.expires_at}
+                            onChange={e => setData('expires_at', e.target.value)}
+                            className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-theme-500 bg-white dark:bg-gray-700 dark:text-white"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Kosongkan jika berita ditayangkan selamanya tanpa kadaluarsa.</p>
                     </div>
 
                     <div>

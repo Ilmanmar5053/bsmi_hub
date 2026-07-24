@@ -53,6 +53,13 @@ class DashboardController extends Controller
             ->orderByDesc('total')
             ->get();
 
+        $bloodTypes = Member::select('golongan_darah', DB::raw('count(*) as total'))
+            ->whereNotNull('golongan_darah')
+            ->where('golongan_darah', '!=', '')
+            ->groupBy('golongan_darah')
+            ->orderByDesc('total')
+            ->get();
+
         $user = auth()->user();
         $isVolunteer = $user && $user->hasRole('relawan');
         $isAnggota = $user && $user->hasRole('anggota');
@@ -99,6 +106,7 @@ class DashboardController extends Controller
             'recentPrograms'    => $recentPrograms,
             'topAssets'         => $topAssets,
             'membersPerRegional'=> $membersPerRegional,
+            'bloodTypes'        => $bloodTypes,
             'isVolunteer'       => $isVolunteer,
             'isAnggota'      => $isAnggota,
             'volunteerData'  => $volunteerData,

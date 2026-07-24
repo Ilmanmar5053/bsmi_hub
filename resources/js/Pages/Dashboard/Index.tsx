@@ -19,6 +19,7 @@ interface Props {
     recentPrograms: { id: number; title: string; category: string; status: string; start_date: string; location?: string; description?: string }[];
     topAssets?: any[];
     membersPerRegional: { regional_cabang: string; total: number }[];
+    bloodTypes: { golongan_darah: string; total: number }[];
     isVolunteer?: boolean;
     isAnggota?: boolean;
     volunteerData?: any;
@@ -37,7 +38,7 @@ const STAGES = [
     'Lulus / Pelantikan'
 ];
 
-export default function Dashboard({ stats, chartData, recentPrograms, topAssets, membersPerRegional, isVolunteer, isAnggota, volunteerData, diklatsarModules, duesHistory, distributionHistory }: Props) {
+export default function Dashboard({ stats, chartData, recentPrograms, topAssets, membersPerRegional, bloodTypes, isVolunteer, isAnggota, volunteerData, diklatsarModules, duesHistory, distributionHistory }: Props) {
     const { props } = usePage<any>();
     const isSuperAdmin = props.auth?.roles?.includes('super_admin');
     const hasFinance = isSuperAdmin || props.auth?.permissions?.includes('menu-finance');
@@ -66,8 +67,9 @@ export default function Dashboard({ stats, chartData, recentPrograms, topAssets,
 
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
                 <StatCard compact title="Total Anggota" value={stats.totalMembers} icon={<Users className="text-blue-600" />} iconBg="bg-blue-100" />
-                <StatCard compact title="Program Aktif" value={stats.totalPrograms} icon={<Calendar className="text-green-600" />} iconBg="bg-green-100" />
+                <StatCard compact title="Total Pengurus" value={stats.totalExecutives} icon={<UserCog className="text-indigo-600" />} iconBg="bg-indigo-100" />
                 <StatCard compact title="Relawan" value={stats.totalVolunteers} icon={<UserPlus className="text-purple-600" />} iconBg="bg-purple-100" />
+                <StatCard compact title="Program Aktif" value={stats.totalPrograms} icon={<Calendar className="text-green-600" />} iconBg="bg-green-100" />
                 
                 {hasFinance && (
                     <>
@@ -87,7 +89,7 @@ export default function Dashboard({ stats, chartData, recentPrograms, topAssets,
                         />
                         <StatCard 
                             compact
-                            title="Saldo Keuangan" 
+                            title="Saldo Kas" 
                             value={
                                 <div className="flex items-center gap-2">
                                     <span>{showFinance ? formatRupiah(stats.balance) : 'Rp ••••••••'}</span>
@@ -99,7 +101,6 @@ export default function Dashboard({ stats, chartData, recentPrograms, topAssets,
                             icon={<Wallet className="text-teal-600" />} 
                             iconBg="bg-teal-100" 
                         />
-                        <StatCard compact title="Total Pengurus" value={stats.totalExecutives} icon={<UserCog className="text-indigo-600" />} iconBg="bg-indigo-100" />
                     </>
                 )}
             </div>
@@ -133,13 +134,36 @@ export default function Dashboard({ stats, chartData, recentPrograms, topAssets,
                 </div>
             </div>
 
+            {/* Golongan Darah (Grid Layout) */}
+            <div className="mb-6 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                    <Heart className="text-red-500" size={16} />
+                    <h2 className="text-sm font-bold text-gray-800 dark:text-white">Golongan Darah Anggota</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 pb-2">
+                    {bloodTypes && bloodTypes.length > 0 ? bloodTypes.map((blood, idx) => (
+                        <div key={idx} className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${regionalGradients[idx % regionalGradients.length]}`}>
+                            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-white border border-gray-200 text-red-600 flex items-center justify-center font-bold shadow-sm">
+                                {blood.golongan_darah}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-900 leading-tight flex-1">Anggota</span>
+                            <div className="text-xs font-bold text-gray-700 bg-white/60 px-2 py-0.5 rounded-full flex-shrink-0 backdrop-blur-sm shadow-sm border border-white/50">
+                                {blood.total}
+                            </div>
+                        </div>
+                    )) : (
+                        <div className="text-xs text-gray-500 py-1">Belum ada data golongan darah.</div>
+                    )}
+                </div>
+            </div>
+
             <div className={`grid grid-cols-1 ${hasFinance && hasLogistics ? 'lg:grid-cols-3' : ''} gap-6 mb-6`}>
                 {hasFinance && (
                     <div className="lg:col-span-2 bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
                         {/* Modern Chart Header */}
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <h2 className="text-lg font-bold text-gray-800 dark:text-white">Grafik Keuangan</h2>
+                                <h2 className="text-lg font-bold text-gray-800 dark:text-white">Grafik Arus Kas</h2>
                                 <p className="text-xs text-gray-400 mt-0.5">Perbandingan arus kas bulanan — Tahun 2026</p>
                             </div>
                             <div className="flex items-center gap-4">

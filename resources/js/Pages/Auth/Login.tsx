@@ -7,20 +7,21 @@ import { X } from 'lucide-react';
 interface Props {
     canResetPassword: boolean;
     status?: string;
-    announcement?: any;
+    announcements?: any[];
 }
 
-export default function Login({ canResetPassword, status, announcement }: Props) {
+export default function Login({ canResetPassword, status, announcements = [] }: Props) {
     const { props } = usePage<any>();
     const organization = props.organization;
     const [showPassword, setShowPassword] = React.useState(false);
     const [isForgotModalOpen, setIsForgotModalOpen] = React.useState(false);
     const [showAnnouncement, setShowAnnouncement] = React.useState(
-        !!announcement && !!announcement.images && announcement.images.length > 0
+        announcements && announcements.length > 0
     );
     const [loginRole, setLoginRole] = React.useState<'administrator' | 'anggota' | 'relawan'>('administrator');
     const [currentSlide, setCurrentSlide] = React.useState(1);
     const totalSlides = 5;
+    const [currentAnnouncementIdx, setCurrentAnnouncementIdx] = React.useState(0);
 
     React.useEffect(() => {
         const interval = setInterval(() => {
@@ -28,6 +29,14 @@ export default function Login({ canResetPassword, status, announcement }: Props)
         }, 5000); // 5 detik
         return () => clearInterval(interval);
     }, []);
+
+    React.useEffect(() => {
+        if (!showAnnouncement || !announcements || announcements.length <= 1) return;
+        const interval = setInterval(() => {
+            setCurrentAnnouncementIdx((prev) => (prev + 1) % announcements.length);
+        }, 5000); // 5 detik fade
+        return () => clearInterval(interval);
+    }, [showAnnouncement, announcements]);
 
     const themes = {
         administrator: {
@@ -478,24 +487,58 @@ export default function Login({ canResetPassword, status, announcement }: Props)
                     }
                     `}
                 </style>
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowAnnouncement(false)}>
-                    <div className="w-full max-w-md animate-smooth-float">
-                        <div 
-                            className="relative w-full bg-transparent rounded-2xl overflow-hidden shadow-2xl animate-scale-up"
-                            style={{ aspectRatio: '4/5' }}
-                            onClick={(e) => e.stopPropagation()} // prevent closing when clicking the image
-                        >
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-hidden" onClick={() => setShowAnnouncement(false)}>
+                    <div className="w-full max-w-md animate-smooth-float relative">
+                        {/* Close button outside the sliding items so it doesn't duplicate */}
                         <button 
                             onClick={() => setShowAnnouncement(false)}
-                            className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition-colors backdrop-blur-md"
+                            className="absolute -top-12 right-0 z-[60] bg-black/50 hover:bg-black/80 text-white rounded-full p-2 transition-colors backdrop-blur-md"
                         >
                             <X size={20} />
                         </button>
-                        <img 
-                            src={announcement.images[0]} 
-                            alt={announcement.title || 'Pengumuman'}
-                            className="w-full h-full object-cover"
-                        />
+                        
+                        <div 
+                            className="relative w-full bg-transparent animate-scale-up"
+                            style={{ aspectRatio: '4/5' }}
+                            onClick={(e) => e.stopPropagation()} // prevent closing when clicking the image
+                        >
+                            {announcements?.map((ann, idx) => {
+                                const len = announcements.length;
+                                let offset = idx - currentAnnouncementIdx;
+                                
+                                if (offset > Math.floor(len / 2)) offset -= len;
+                                if (offset < -Math.floor(len / 2)) offset += len;
+                                
+                                // Waving effect parameters
+                                const translateX = offset * 35; // Tighter spacing (35% instead of 85%)
+                                const scale = offset === 0 ? 1 : Math.max(0.4, 1 - Math.abs(offset) * 0.45); 
+                                const opacity = offset === 0 ? 1 : Math.max(0, 0.7 - Math.abs(offset) * 0.3);
+                                const zIndex = 50 - Math.abs(offset);
+                                const isVisible = Math.abs(offset) <= 2;
+
+                                return (
+                                    <div 
+                                        key={ann.id}
+                                        className="absolute inset-0 transition-all duration-1000 ease-[cubic-bezier(0.25,0.1,0.25,1)] bg-white rounded-2xl overflow-hidden shadow-2xl"
+                                        style={{
+                                            transform: `translateX(${translateX}%) scale(${scale})`,
+                                            opacity: isVisible ? opacity : 0,
+                                            zIndex: zIndex,
+                                            pointerEvents: offset === 0 ? 'auto' : 'none',
+                                        }}
+                                    >
+                                        <img 
+                                            src={ann.image_url || (ann.images && ann.images[0])} 
+                                            alt={ann.title || 'Pengumuman'}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-6 pt-16 text-white">
+                                            <div className="text-xs font-bold text-red-400 uppercase tracking-wider mb-1">{ann.category}</div>
+                                            <h3 className="text-lg font-bold leading-tight line-clamp-2">{ann.title}</h3>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

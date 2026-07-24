@@ -11,6 +11,11 @@ class Volunteer extends Model
 {
     use LogsActivity;
 
+    protected static function booted()
+    {
+        static::addGlobalScope(new \App\Models\Scopes\RegionalCabangScope);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

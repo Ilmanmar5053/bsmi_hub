@@ -97,6 +97,6 @@ class FinanceExport implements
      */
     public function title(): string
     {
-        return 'Transaksi Keuangan';
+        return 'Transaksi Arus Kas';
     }
 }

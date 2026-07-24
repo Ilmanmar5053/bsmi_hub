@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link, router, usePage, useForm } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { StatusBadge, Modal, formatDate, EmptyState, SearchInput, Pagination } from '@/Components/Shared';
+import { StatusBadge, Modal, formatDate, EmptyState, SearchInput, Pagination, SensitiveDataField } from '@/Components/Shared';
 import { UserPlus, Eye, Check, X, Download, KeyRound, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { confirmAction } from '@/Utils/swal';
 
@@ -17,6 +17,7 @@ interface Volunteer {
     job_category: string;
     job_type: string;
     id_card_path: string | null;
+    photo_path?: string | null;
     address: string;
     birth_date: string;
     user_id: number | null;
@@ -34,6 +35,7 @@ interface Volunteer {
     jumlah_tanggungan?: string;
     review_notes?: string;
     reviewed_at?: string;
+    is_member?: boolean;
 }
 
 interface PaginatedData<T> {
@@ -47,9 +49,10 @@ interface PaginatedData<T> {
 interface Props {
     volunteers: PaginatedData<Volunteer>;
     filters: { status: string; sort_by?: string; sort_direction?: string; regional_cabang?: string; search?: string; };
+    totalNotMember: number;
 }
 
-export default function VolunteersIndex({ volunteers, filters }: Props) {
+export default function VolunteersIndex({ volunteers, filters, totalNotMember }: Props) {
     const { props } = usePage<any>();
     const roles = props.auth?.roles || [];
     const canEdit = !roles.includes('anggota') && !roles.includes('relawan');
@@ -169,6 +172,19 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
                 </div>
             </div>
 
+            {/* Dashboard Card */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white dark:bg-gray-900 border border-red-100 dark:border-red-900 rounded-xl p-4 flex items-center gap-4 shadow-sm">
+                    <div className="bg-red-50 dark:bg-red-900/30 p-3 rounded-lg text-red-600 dark:text-red-400">
+                        <UserPlus size={24} />
+                    </div>
+                    <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Relawan Belum Aktif Anggota</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">Total : {totalNotMember}</p>
+                    </div>
+                </div>
+            </div>
+
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <nav className="flex space-x-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
                     {tabs.map(tab => {
@@ -222,7 +238,8 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
                                 <th>Cabang</th>
                                 <th onClick={() => handleSort('skills')} className="cursor-pointer hover:bg-gray-100 transition-colors">Keahlian <SortIcon column="skills" /></th>
                                 <th onClick={() => handleSort('applied_date')} className="cursor-pointer hover:bg-gray-100 transition-colors">Tgl Daftar <SortIcon column="applied_date" /></th>
-                                <th onClick={() => handleSort('status')} className="cursor-pointer hover:bg-gray-100 transition-colors">Status <SortIcon column="status" /></th>
+                                <th onClick={() => handleSort('status')} className="cursor-pointer hover:bg-gray-100 transition-colors">Status Calon <SortIcon column="status" /></th>
+                                <th className="text-center">Status Anggota</th>
                                 <th className="text-right">Aksi</th>
                             </tr>
                         </thead>
@@ -243,6 +260,17 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
                                     <td className="text-sm truncate max-w-[200px]">{v.skills}</td>
                                     <td>{formatDate(v.applied_date)}</td>
                                     <td><StatusBadge status={v.status} /></td>
+                                    <td className="text-center">
+                                        {v.is_member ? (
+                                            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-md">
+                                                <Check size={14} /> Aktif
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded-md">
+                                                <X size={14} /> Belum
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="text-right">
                                         <button onClick={() => setSelectedVolunteer(v)} className="btn-secondary py-1 px-2 text-xs">
                                             Detail
@@ -269,14 +297,24 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
             <Modal isOpen={!!selectedVolunteer} onClose={() => setSelectedVolunteer(null)} title="Detail Relawan" size="lg">
                 {selectedVolunteer && (
                     <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <p className="text-gray-500 mb-1">Nama Lengkap</p>
-                                <p className="font-medium text-gray-900 dark:text-white">{selectedVolunteer.name}</p>
+                        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 border-b border-gray-100 dark:border-gray-700 pb-6">
+                            <img 
+                                src={selectedVolunteer.photo_path ? `/storage/${selectedVolunteer.photo_path}` : (selectedVolunteer.gender === 'P' ? '/images/avatars/female.png' : '/images/avatars/male.png')} 
+                                alt={selectedVolunteer.name} 
+                                className="w-24 h-24 rounded-full object-cover border border-gray-200 dark:border-gray-700 shadow-sm"
+                            />
+                            <div className="text-center md:text-left flex-1">
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{selectedVolunteer.name}</h3>
+                                <p className="text-gray-500 font-medium">{selectedVolunteer.regional_cabang || 'Pusat'}</p>
+                                <div className="mt-2">
+                                    <StatusBadge status={selectedVolunteer.status} />
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-gray-500 mb-1">Status</p>
-                                <StatusBadge status={selectedVolunteer.status} />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div className="col-span-1 md:col-span-2">
+                                <h4 className="font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">Informasi Pribadi</h4>
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">Jenis Kelamin</p>
@@ -288,15 +326,11 @@ export default function VolunteersIndex({ volunteers, filters }: Props) {
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">Email</p>
-                                <p className="font-medium">{selectedVolunteer.email}</p>
+                                <SensitiveDataField value={selectedVolunteer.email} />
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">Telepon</p>
-                                <p className="font-medium">{selectedVolunteer.phone || '-'}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-500 mb-1">Regional Cabang</p>
-                                <p className="font-medium">{selectedVolunteer.regional_cabang || '-'}</p>
+                                <SensitiveDataField value={selectedVolunteer.phone} />
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">Agama</p>

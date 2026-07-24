@@ -19,16 +19,21 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
-        $announcement = News::where('category', 'Pengumuman')
-            ->where('status', 'published')
+        $announcements = News::where('status', 'published')
+            ->whereNotNull('images')
+            ->where(function($query) {
+                $query->whereNull('expires_at')
+                      ->orWhere('expires_at', '>=', now());
+            })
             ->orderBy('published_at', 'desc')
             ->orderBy('created_at', 'desc')
-            ->first();
+            ->take(5)
+            ->get();
 
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
-            'announcement' => $announcement,
+            'announcements' => $announcements,
         ]);
     }
 

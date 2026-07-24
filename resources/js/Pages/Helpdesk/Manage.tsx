@@ -1,15 +1,49 @@
 import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { LifeBuoy, Settings, CheckCircle, Clock, Trash2, XCircle, Search } from 'lucide-react';
+import { LifeBuoy, Settings, CheckCircle, Clock, Trash2, XCircle, Search, RefreshCw } from 'lucide-react';
 import { confirmAction } from '@/Utils/swal';
 import { Modal } from '@/Components/Shared';
 
 export default function HelpdeskManage({ tickets }: any) {
-    const handleStatusChange = (ticketId: number, status: string) => {
-        router.patch(`/helpdesk/${ticketId}/status`, { status }, {
-            preserveScroll: true,
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+    const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
+    const [adminResponse, setAdminResponse] = useState('');
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        router.reload({
+            only: ['tickets'],
+            onFinish: () => setIsRefreshing(false),
         });
+    };
+
+    const handleStatusChange = (ticketId: number, status: string) => {
+        if (status === 'resolved') {
+            setSelectedTicketId(ticketId);
+            setAdminResponse('');
+            setIsResponseModalOpen(true);
+        } else {
+            router.patch(`/helpdesk/${ticketId}/status`, { status }, {
+                preserveScroll: true,
+            });
+        }
+    };
+
+    const submitResponse = () => {
+        if (selectedTicketId) {
+            router.patch(`/helpdesk/${selectedTicketId}/status`, { 
+                status: 'resolved', 
+                admin_response: adminResponse 
+            }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIsResponseModalOpen(false);
+                    setSelectedTicketId(null);
+                }
+            });
+        }
     };
 
     const getStatusColor = (status: string) => {
@@ -46,6 +80,17 @@ export default function HelpdeskManage({ tickets }: any) {
                         <p className="mt-2 text-gray-500 dark:text-gray-400">
                             Kelola tiket pengaduan dan pertanyaan dari pengguna sistem.
                         </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <button 
+                            onClick={handleRefresh} 
+                            disabled={isRefreshing}
+                            className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm flex items-center gap-1.5 h-[38px] px-4 transition-colors" 
+                            title="Refresh Data"
+                        >
+                            <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                            Refresh
+                        </button>
                     </div>
                 </div>
 
@@ -106,6 +151,23 @@ export default function HelpdeskManage({ tickets }: any) {
                     </div>
                 </div>
             </div>
+
+            <Modal isOpen={isResponseModalOpen} onClose={() => setIsResponseModalOpen(false)} title="Beri Tanggapan / Balasan" size="md">
+                <div className="p-6">
+                    <p className="text-sm text-gray-500 mb-4">Tambahkan catatan atau tanggapan Anda terkait penyelesaian pengaduan ini agar dapat dibaca oleh pengguna. Status akan otomatis berubah menjadi Ditutup setelah tanggapan dikirim.</p>
+                    <textarea
+                        className="form-input w-full min-h-[120px] resize-y mb-4"
+                        placeholder="Tuliskan balasan/catatan Anda di sini..."
+                        value={adminResponse}
+                        onChange={(e) => setAdminResponse(e.target.value)}
+                        required
+                    />
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                        <button type="button" onClick={() => setIsResponseModalOpen(false)} className="btn-secondary">Batal</button>
+                        <button type="button" onClick={submitResponse} disabled={!adminResponse.trim()} className="btn-primary">Kirim & Tutup Tiket</button>
+                    </div>
+                </div>
+            </Modal>
         </AppLayout>
     );
 }

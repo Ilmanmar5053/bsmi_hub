@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { StatusBadge, Modal, SearchInput, formatRupiah, EmptyState } from '@/Components/Shared';
-import { Plus, Edit, Trash2, Heart } from 'lucide-react';
+import { StatusBadge, Modal, SearchInput, formatRupiah, EmptyState, SensitiveDataField } from '@/Components/Shared';
+import { Plus, Edit, Trash2, Heart, Eye } from 'lucide-react';
 import { confirmAction } from '@/Utils/swal';
 
 interface Beneficiary {
@@ -15,6 +15,7 @@ interface Beneficiary {
     family_members: number;
     description: string;
     total_received: string;
+    photo_path?: string;
 }
 
 interface Props {
@@ -30,10 +31,12 @@ export default function BeneficiariesIndex({ beneficiaries, filters }: Props) {
     const [search, setSearch] = useState(filters.search || '');
     const [categoryFilter, setCategoryFilter] = useState(filters.category || '');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+    const [selectedBeneficiary, setSelectedBeneficiary] = useState<Beneficiary | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
 
     const { data, setData, post, processing, errors, reset } = useForm({
-        name: '', nik: '', phone: '', address: '', category: '', family_members: '1', description: ''
+        name: '', nik: '', phone: '', address: '', category: '', family_members: '1', description: '', photo: null as File | null
     });
 
     const categories = [
@@ -67,10 +70,16 @@ export default function BeneficiariesIndex({ beneficiaries, filters }: Props) {
             category: item.category || '',
             family_members: item.family_members || '1',
             description: item.description || '',
+            photo: null,
             _method: 'put'
         } as any);
         setEditingId(item.id);
         setIsAddModalOpen(true);
+    };
+
+    const handleView = (item: Beneficiary) => {
+        setSelectedBeneficiary(item);
+        setIsViewModalOpen(true);
     };
 
     const handleOpenAdd = () => {
@@ -162,10 +171,11 @@ export default function BeneficiariesIndex({ beneficiaries, filters }: Props) {
                                         {formatRupiah(item.total_received)}
                                     </td>
                                     <td className="text-right space-x-2">
+                                        <button onClick={() => handleView(item)} className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200" title="Detail Data"><Eye size={16} /></button>
                                         {canEdit && (
                                             <>
-                                                <button onClick={() => handleEdit(item)} className="text-blue-600 hover:text-blue-800"><Edit size={16} /></button>
-                                                <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
+                                                <button onClick={() => handleEdit(item)} className="text-blue-600 hover:text-blue-800" title="Edit Data"><Edit size={16} /></button>
+                                                <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-800" title="Hapus Data"><Trash2 size={16} /></button>
                                             </>
                                         )}
                                     </td>
@@ -209,6 +219,11 @@ export default function BeneficiariesIndex({ beneficiaries, filters }: Props) {
                             <input type="number" className="form-input" value={data.family_members} onChange={e => setData('family_members', e.target.value)} min="1" required />
                         </div>
                         <div className="col-span-2">
+                            <label className="form-label">Foto Penerima Manfaat (Opsional)</label>
+                            <input type="file" className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-theme-50 file:text-theme-700 hover:file:bg-theme-100" accept="image/*" onChange={e => setData('photo', e.target.files ? e.target.files[0] : null)} />
+                            {errors.photo && <p className="text-xs text-red-500 mt-1">{errors.photo}</p>}
+                        </div>
+                        <div className="col-span-2">
                             <label className="form-label">Alamat Lengkap</label>
                             <textarea className="form-input" rows={2} value={data.address} onChange={e => setData('address', e.target.value)} required></textarea>
                         </div>
@@ -222,6 +237,78 @@ export default function BeneficiariesIndex({ beneficiaries, filters }: Props) {
                         <button type="submit" className="btn-primary" disabled={processing}>Simpan Data</button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* View Modal */}
+            <Modal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} title="Detail Penerima Manfaat" size="lg">
+                {selectedBeneficiary && (
+                    <div className="p-4 space-y-6">
+                        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative">
+                            <div className="relative group z-10">
+                                <div className="w-32 h-32 flex-shrink-0 bg-gray-100 dark:bg-gray-700 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-600 cursor-pointer">
+                                    {selectedBeneficiary.photo_path ? (
+                                        <img src={selectedBeneficiary.photo_path} alt={selectedBeneficiary.name} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                            <Heart size={40} />
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {selectedBeneficiary.photo_path && (
+                                    <div className="absolute top-full mt-4 md:top-0 md:left-full md:mt-0 md:ml-6 z-50 hidden group-hover:block w-[280px] sm:w-[350px] bg-white dark:bg-gray-800 p-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl origin-left animate-in fade-in zoom-in-95 duration-200">
+                                        <img src={selectedBeneficiary.photo_path} alt={selectedBeneficiary.name} className="w-full h-auto max-h-[400px] object-contain rounded-xl bg-gray-50 dark:bg-gray-900" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex-1 text-center md:text-left">
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{selectedBeneficiary.name}</h3>
+                                <span className="inline-block mt-1 px-3 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full">
+                                    {categories.find(c => c.value === selectedBeneficiary.category)?.label || selectedBeneficiary.category}
+                                </span>
+                                <div className="mt-4 space-y-2">
+                                    <div className="flex items-center justify-center md:justify-start gap-2">
+                                        <span className="text-sm font-medium text-gray-500 w-24">NIK</span>
+                                        <div className="flex-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                            {selectedBeneficiary.nik ? <SensitiveDataField value={selectedBeneficiary.nik} /> : '-'}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-center md:justify-start gap-2">
+                                        <span className="text-sm font-medium text-gray-500 w-24">Telepon</span>
+                                        <div className="flex-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                            {selectedBeneficiary.phone ? <SensitiveDataField value={selectedBeneficiary.phone} /> : '-'}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start justify-center md:justify-start gap-2">
+                                        <span className="text-sm font-medium text-gray-500 w-24">Alamat</span>
+                                        <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">{selectedBeneficiary.address || '-'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
+                            <div>
+                                <p className="text-xs text-gray-500">Tanggungan Keluarga</p>
+                                <p className="font-semibold text-gray-900 dark:text-white">{selectedBeneficiary.family_members} Orang</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">Total Bantuan Diterima</p>
+                                <p className="font-semibold text-green-600">{formatRupiah(selectedBeneficiary.total_received)}</p>
+                            </div>
+                            <div className="col-span-2">
+                                <p className="text-xs text-gray-500 mb-1">Deskripsi / Kondisi Khusus</p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                                    {selectedBeneficiary.description || 'Tidak ada deskripsi.'}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex justify-end pt-2">
+                            <button onClick={() => setIsViewModalOpen(false)} className="btn-secondary">Tutup</button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </AppLayout>
     );

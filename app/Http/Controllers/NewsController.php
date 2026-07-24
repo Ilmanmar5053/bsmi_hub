@@ -15,7 +15,7 @@ class NewsController extends Controller
      */
     public function index(Request $request)
     {
-        $query = News::query();
+        $query = News::with('author');
 
         if ($request->has('category') && $request->category !== 'Semua' && $request->category !== '') {
             $query->where('category', $request->category);
@@ -44,11 +44,13 @@ class NewsController extends Controller
             'category' => 'required|string',
             'images' => 'nullable|array|max:5',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'expires_at' => 'nullable|date',
         ]);
 
         $validated['slug'] = Str::slug($validated['title']) . '-' . uniqid();
         $validated['published_at'] = now();
         $validated['status'] = 'published';
+        $validated['author_id'] = auth()->id();
 
         $imagePaths = [];
         if ($request->hasFile('images')) {
@@ -95,6 +97,7 @@ class NewsController extends Controller
             'category' => 'required|string',
             'images' => 'nullable|array|max:5',
             'images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'expires_at' => 'nullable|date',
         ]);
         
         if ($request->title !== $news->title) {

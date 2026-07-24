@@ -14,7 +14,8 @@ interface Props {
 
 export default function DeliveryNotesIndex({ deliveryNotes }: Props) {
     const { props } = usePage<any>();
-    const canManageLogistics = props.auth?.permissions?.includes('manage-logistics');
+    const roles = props.auth?.roles || [];
+    const canManageLogistics = !roles.includes('anggota') && !roles.includes('relawan');
 
     const [previewNote, setPreviewNote] = useState<any>(null);
 

@@ -11,6 +11,7 @@ class HelpdeskTicket extends Model
         'subject',
         'message',
         'status',
+        'admin_response',
     ];
 
     public function user()

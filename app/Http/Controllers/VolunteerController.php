@@ -25,6 +25,9 @@ class VolunteerController extends Controller
         $sortBy = $filters['sort_by'] ?? null;
         $sortDirection = $filters['sort_direction'] ?? 'asc';
 
+        $memberEmails = \App\Models\Member::whereNotNull('email')->pluck('email')->toArray();
+        $totalNotMember = Volunteer::whereNotIn('email', $memberEmails)->count();
+
         $volunteers = Volunteer::query()
             ->when($filters['search'] ?? null, fn($q, $v) =>
                 $q->where(function($query) use ($v) {
@@ -75,11 +78,13 @@ class VolunteerController extends Controller
                 'status_keluarga'     => $v->status_keluarga,
                 'agama'               => $v->agama,
                 'jumlah_tanggungan'   => $v->jumlah_tanggungan,
+                'is_member'           => in_array($v->email, $memberEmails),
             ]);
 
         return Inertia::render('Volunteers/Index', [
             'volunteers' => $volunteers,
             'filters'    => $filters,
+            'totalNotMember' => $totalNotMember,
         ]);
     }
 

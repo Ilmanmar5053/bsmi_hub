@@ -31,6 +31,7 @@ interface Props {
     filters: { search: string };
     modules: DiklatsarModule[];
     certificateSetting: any;
+    signatoryCandidates: string[];
 }
 
 const STAGES = [
@@ -43,7 +44,7 @@ const STAGES = [
     'Lulus / Pelantikan'
 ];
 
-export default function DiklatsarIndex({ volunteers, filters, modules }: Props) {
+export default function DiklatsarIndex({ volunteers, filters, modules, signatoryCandidates }: Props) {
     const { props } = usePage<any>();
     const roles = props.auth?.roles || [];
     const canEdit = !roles.includes('anggota') && !roles.includes('relawan');
@@ -86,7 +87,9 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
         signature_1_name: props.certificateSetting?.signature_1_name || '',
         signature_1_title: props.certificateSetting?.signature_1_title || '',
         signature_2_name: props.certificateSetting?.signature_2_name || '',
-        signature_2_title: props.certificateSetting?.signature_2_title || ''
+        signature_2_title: props.certificateSetting?.signature_2_title || '',
+        signature_1_image: null as File | null,
+        signature_2_image: null as File | null
     });
 
     const [selectedVolunteers, setSelectedVolunteers] = useState<number[]>([]);
@@ -146,7 +149,12 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
 
     const handleSaveCertSetting = (e: React.FormEvent) => {
         e.preventDefault();
-        router.put('/diklatsar/certificate-setting', certFormData, {
+        router.post('/diklatsar/certificate-setting', {
+            ...certFormData,
+            _method: 'put',
+        }, {
+            forceFormData: true,
+            preserveScroll: true,
             onSuccess: () => setIsCertSettingsOpen(false)
         });
     };
@@ -410,14 +418,20 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
                             <label className="block text-xs text-gray-500 mb-1">Jabatan</label>
                             <input type="text" className="form-input w-full text-xs mb-2" value={certFormData.signature_1_title} onChange={e => setCertFormData({ ...certFormData, signature_1_title: e.target.value })} placeholder="Ketua Umum" />
                             <label className="block text-xs text-gray-500 mb-1">Nama</label>
-                            <input type="text" className="form-input w-full text-xs" value={certFormData.signature_1_name} onChange={e => setCertFormData({ ...certFormData, signature_1_name: e.target.value })} placeholder="Dr. M. Djazuli Ambari" />
+                            <input type="text" list="signatory-names" className="form-input w-full text-xs mb-2" value={certFormData.signature_1_name} onChange={e => setCertFormData({ ...certFormData, signature_1_name: e.target.value })} placeholder="Dr. M. Djazuli Ambari" />
+                            <label className="block text-xs text-gray-500 mb-1">Upload TTD (PNG Transparan)</label>
+                            <input type="file" accept="image/png" className="w-full text-xs" onChange={e => setCertFormData({ ...certFormData, signature_1_image: e.target.files?.[0] || null })} />
+                            {props.certificateSetting?.signature_1_image && <span className="text-[10px] text-emerald-600 block mt-1">✓ Sudah ada tanda tangan tersimpan</span>}
                         </div>
                         <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg">
                             <p className="text-xs font-semibold text-gray-600 mb-2">Penandatangan 2 (Kanan)</p>
                             <label className="block text-xs text-gray-500 mb-1">Jabatan</label>
                             <input type="text" className="form-input w-full text-xs mb-2" value={certFormData.signature_2_title} onChange={e => setCertFormData({ ...certFormData, signature_2_title: e.target.value })} placeholder="Komandan Relawan" />
                             <label className="block text-xs text-gray-500 mb-1">Nama</label>
-                            <input type="text" className="form-input w-full text-xs" value={certFormData.signature_2_name} onChange={e => setCertFormData({ ...certFormData, signature_2_name: e.target.value })} placeholder="Rizky Febriansyah" />
+                            <input type="text" list="signatory-names" className="form-input w-full text-xs mb-2" value={certFormData.signature_2_name} onChange={e => setCertFormData({ ...certFormData, signature_2_name: e.target.value })} placeholder="Rizky Febriansyah" />
+                            <label className="block text-xs text-gray-500 mb-1">Upload TTD (PNG Transparan)</label>
+                            <input type="file" accept="image/png" className="w-full text-xs" onChange={e => setCertFormData({ ...certFormData, signature_2_image: e.target.files?.[0] || null })} />
+                            {props.certificateSetting?.signature_2_image && <span className="text-[10px] text-emerald-600 block mt-1">✓ Sudah ada tanda tangan tersimpan</span>}
                         </div>
                     </div>
                     <div className="flex justify-end pt-2">
@@ -425,6 +439,12 @@ export default function DiklatsarIndex({ volunteers, filters, modules }: Props) 
                             <Save size={16} className="mr-2" /> Simpan Pengaturan
                         </button>
                     </div>
+                    
+                    <datalist id="signatory-names">
+                        {signatoryCandidates?.map((name, i) => (
+                            <option key={i} value={name} />
+                        ))}
+                    </datalist>
                 </form>
             </Modal>
         </AppLayout>

@@ -1,6 +1,31 @@
-import React from 'react';
-import { CheckCircle, XCircle, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle, XCircle, X, Eye, EyeOff } from 'lucide-react';
 import { Link } from '@inertiajs/react';
+
+export function SensitiveDataField({ value, label }: { value: string | null | undefined, label?: string }) {
+    const [isVisible, setIsVisible] = useState(false);
+    
+    if (!value) return <span className="font-medium text-gray-900 dark:text-white">-</span>;
+
+    // Mask logic: mask all characters except maybe keep length same but just use asterisks
+    const maskedValue = value.replace(/./g, '•');
+
+    return (
+        <div className="flex items-center gap-2">
+            <span className={`font-medium text-gray-900 dark:text-white break-all ${!isVisible ? 'font-mono tracking-wider' : ''}`}>
+                {isVisible ? value : maskedValue}
+            </span>
+            <button 
+                type="button" 
+                onClick={() => setIsVisible(!isVisible)} 
+                className="text-gray-400 hover:text-theme-600 dark:hover:text-theme-400 focus:outline-none transition-colors"
+                title={isVisible ? "Sembunyikan" : "Tampilkan"}
+            >
+                {isVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+        </div>
+    );
+}
 
 interface FlashProps {
     success?: string;

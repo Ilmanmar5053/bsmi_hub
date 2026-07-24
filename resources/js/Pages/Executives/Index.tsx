@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Head, useForm, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { Modal, formatDate, EmptyState, SearchInput } from '@/Components/Shared';
+import { Modal, formatDate, EmptyState, SearchInput, SensitiveDataField } from '@/Components/Shared';
 import { Plus, Edit, Trash2, UserCog, CheckCircle, XCircle, Eye, Phone, Mail, MapPin, ChevronDown, ChevronRight } from 'lucide-react';
 import { confirmAction } from '@/Utils/swal';
 
@@ -20,7 +20,7 @@ interface Executive {
     golongan_darah?: string;
     kesiapan_mobilisasi?: boolean;
     ukuran_baju?: string;
-    photo_url: string;
+    photo_url: string | null;
     notes?: string;
     member_no_hp?: string;
     member_email?: string;
@@ -250,7 +250,7 @@ export default function ExecutivesIndex({ executives, members = [], usedMemberId
                             
                             <div className="p-6 pt-8 text-center flex flex-col items-center">
                                 <div className="relative mb-4">
-                                    <img src={exec.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(exec.member_name || exec.nama_lengkap)}&background=fecaca&color=b91c1c`} alt={exec.member_name || exec.nama_lengkap} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md" />
+                                    <img src={exec.photo_url || (exec.member_gender === 'P' ? '/images/avatars/female.png' : '/images/avatars/male.png')} alt={exec.member_name || exec.nama_lengkap} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md" />
                                     {exec.status_aktif ? (
                                         <div className="absolute bottom-0 right-0 bg-white rounded-full p-0.5" title="Aktif">
                                             <CheckCircle size={20} className="text-green-500 bg-white rounded-full" />
@@ -431,12 +431,12 @@ export default function ExecutivesIndex({ executives, members = [], usedMemberId
                 </form>
             </Modal>
 
-            <Modal isOpen={!!viewingExecutive} onClose={() => setViewingExecutive(null)} title="Profil Pengurus">
+            <Modal isOpen={!!viewingExecutive} onClose={() => setViewingExecutive(null)} title="Profil Pengurus" size="lg">
                 {viewingExecutive && (
                     <div className="space-y-6">
                         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                             <img 
-                                src={viewingExecutive.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(viewingExecutive.member_name || viewingExecutive.nama_lengkap)}&background=fecaca&color=b91c1c`} 
+                                src={viewingExecutive.photo_url || (viewingExecutive.member_gender === 'P' ? '/images/avatars/female.png' : '/images/avatars/male.png')} 
                                 alt={viewingExecutive.nama_lengkap} 
                                 className="w-32 h-32 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shadow-sm"
                             />
@@ -464,14 +464,14 @@ export default function ExecutivesIndex({ executives, members = [], usedMemberId
                                     <Phone size={16} className="text-gray-400 mt-0.5" />
                                     <div>
                                         <div className="text-xs text-gray-500">No. HP / WhatsApp</div>
-                                        <div className="font-medium text-gray-900 dark:text-white">{viewingExecutive.member_no_hp || '-'}</div>
+                                        <SensitiveDataField value={viewingExecutive.member_no_hp} />
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-3">
                                     <Mail size={16} className="text-gray-400 mt-0.5" />
                                     <div>
                                         <div className="text-xs text-gray-500">Email</div>
-                                        <div className="font-medium text-gray-900 dark:text-white">{viewingExecutive.member_email || '-'}</div>
+                                        <SensitiveDataField value={viewingExecutive.member_email} />
                                     </div>
                                 </div>
                                 <div className="flex items-start gap-3">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Beneficiary;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,6 +37,7 @@ class BeneficiaryController extends Controller
                 'family_members' => $b->family_members,
                 'description'    => $b->description,
                 'total_received' => (float) $b->total_received,
+                'photo_path'     => $b->photo_path ? Storage::url($b->photo_path) : null,
             ]);
 
         $categories = Beneficiary::distinct()->pluck('category')->filter()->values();
@@ -57,9 +59,14 @@ class BeneficiaryController extends Controller
             'nik'            => 'nullable|string|max:20|unique:beneficiaries,nik',
             'family_members' => 'nullable|integer|min:1',
             'description'    => 'nullable|string',
+            'photo'          => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         try {
+            if ($request->hasFile('photo')) {
+                $validated['photo_path'] = $request->file('photo')->store('beneficiaries', 'public');
+            }
+
             Beneficiary::create($validated);
 
             return redirect()->route('beneficiaries.index')
@@ -79,9 +86,17 @@ class BeneficiaryController extends Controller
             'nik'            => 'nullable|string|max:20|unique:beneficiaries,nik,' . $beneficiary->id,
             'family_members' => 'nullable|integer|min:1',
             'description'    => 'nullable|string',
+            'photo'          => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         try {
+            if ($request->hasFile('photo')) {
+                if ($beneficiary->photo_path) {
+                    Storage::disk('public')->delete($beneficiary->photo_path);
+                }
+                $validated['photo_path'] = $request->file('photo')->store('beneficiaries', 'public');
+            }
+
             $beneficiary->update($validated);
 
             return redirect()->route('beneficiaries.index')

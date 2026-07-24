@@ -56,10 +56,13 @@ class DeliveryNoteController extends Controller
         $nextId = $lastNote ? ((int) substr($lastNote->document_number, -3)) + 1 : 1;
         $documentNumber = sprintf("SJ-BSMI/%s/%s/%03d", $year, $month, $nextId);
 
+        $personnelNames = \App\Models\Member::where('status_aktif', true)->orderBy('nama_lengkap')->pluck('nama_lengkap');
+
         return Inertia::render('Logistics/DeliveryNotes/Create', [
             'logisticsItems' => $items,
             'suggestedDocumentNumber' => $documentNumber,
-            'defaultDate' => date('Y-m-d')
+            'defaultDate' => date('Y-m-d'),
+            'personnelNames' => $personnelNames
         ]);
     }
 

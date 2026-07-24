@@ -172,11 +172,11 @@ export default function FinanceIndex({ transactions, summary, filters, bankAccou
     
     return (
         <AppLayout>
-            <Head title="Keuangan" />
+            <Head title="Arus Kas" />
 
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Keuangan</h1>
+                    <h1 className="page-title">Arus Kas</h1>
                     <p className="page-subtitle">Pemasukan dan pengeluaran organisasi.</p>
                 </div>
                 <div className="flex gap-2">
@@ -315,8 +315,10 @@ export default function FinanceIndex({ transactions, summary, filters, bankAccou
                                     <td><StatusBadge status={trx.type} /></td>
                                     <td>{trx.category}</td>
                                     <td>{trx.description}</td>
-                                    <td className={`text-right font-medium ${trx.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'}`}>
-                                        {trx.type === 'pemasukan' ? '+' : '-'} {formatRupiah(trx.amount)}
+                                    <td className="text-right">
+                                        <span className={`font-semibold ${trx.type === 'pemasukan' ? 'text-green-600' : 'text-red-600'}`}>
+                                            {trx.type === 'pemasukan' ? '+' : '-'} {formatRupiah(trx.amount)}
+                                        </span>
                                     </td>
                                     <td className="text-right space-x-2">
                                         {canEdit && (
@@ -330,7 +332,7 @@ export default function FinanceIndex({ transactions, summary, filters, bankAccou
                             )) : (
                                 <tr>
                                     <td colSpan={6}>
-                                        <EmptyState icon={<Wallet />} title="Tidak ada transaksi keuangan" />
+                                        <EmptyState icon={<Wallet />} title="Tidak ada transaksi arus kas" />
                                     </td>
                                 </tr>
                             )}
@@ -378,7 +380,7 @@ export default function FinanceIndex({ transactions, summary, filters, bankAccou
                 </form>
             </Modal>
 
-            <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Import Data Keuangan">
+            <Modal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} title="Import Data Arus Kas">
                 <form onSubmit={e => {
                     e.preventDefault();
                     postImport('/finance/import', {

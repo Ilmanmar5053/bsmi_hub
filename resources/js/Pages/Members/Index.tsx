@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
-import { StatusBadge, Modal, SearchInput, formatDate, EmptyState } from '@/Components/Shared';
+import { StatusBadge, Modal, SearchInput, formatDate, EmptyState, SensitiveDataField } from '@/Components/Shared';
 import { Plus, Download, Edit, Trash2, Users, Eye, ToggleLeft, ToggleRight, KeyRound, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { confirmAction } from '@/Utils/swal';
 
@@ -11,7 +11,7 @@ interface Member {
     nama_lengkap: string;
     email: string;
     no_whatsapp: string;
-    photo_url: string;
+    photo_url: string | null;
     bagian_divisi?: string;
     join_date: string;
     status_aktif: boolean;
@@ -390,7 +390,7 @@ export default function MembersIndex({ members, filters, stats, eligibleVoluntee
                                     <td>{(members.from || 1) + i}</td>
                                     <td>
                                         <div className="flex items-center gap-3">
-                                            <img src={member.photo_url} alt="" className="w-8 h-8 rounded-full bg-gray-100" />
+                                            <img src={member.photo_url || (member.gender === 'P' ? '/images/avatars/female.png' : '/images/avatars/male.png')} alt="" className="w-8 h-8 rounded-full bg-gray-100 object-cover" />
                                             <div>
                                                 <p className="font-medium text-gray-900 dark:text-white">{member.nama_lengkap}</p>
                                                 <p className="text-xs text-gray-500">{member.no_induk_anggota}</p>
@@ -718,7 +718,7 @@ export default function MembersIndex({ members, filters, stats, eligibleVoluntee
                 {viewingMember && (
                     <div className="space-y-6">
                         <div className="flex items-center gap-4">
-                            <img src={viewingMember.photo_url} alt="Photo" className="w-20 h-20 rounded-full object-cover border border-gray-200" />
+                            <img src={viewingMember.photo_url || (viewingMember.gender === 'P' ? '/images/avatars/female.png' : '/images/avatars/male.png')} alt="Photo" className="w-20 h-20 rounded-full object-cover border border-gray-200" />
                             <div>
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">{viewingMember.nama_lengkap}</h3>
                                 <p className="text-gray-500 font-medium">{viewingMember.no_induk_anggota}</p>
@@ -743,11 +743,11 @@ export default function MembersIndex({ members, filters, stats, eligibleVoluntee
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">Email</p>
-                                <p className="font-medium text-gray-900 dark:text-white">{viewingMember.email || '-'}</p>
+                                <SensitiveDataField value={viewingMember.email} />
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">No. WhatsApp</p>
-                                <p className="font-medium text-gray-900 dark:text-white">{viewingMember.no_whatsapp || '-'}</p>
+                                <SensitiveDataField value={viewingMember.no_whatsapp} />
                             </div>
                             <div>
                                 <p className="text-gray-500 mb-1">Profesi Utama</p>

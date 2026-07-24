@@ -27,7 +27,7 @@ export default function ReportsIndex() {
         { id: 'anggota', label: 'Data Anggota', icon: <Users size={18} /> },
         { id: 'pengurus', label: 'Data Pengurus', icon: <UserCog size={18} /> },
         { id: 'relawan', label: 'Data Relawan', icon: <Heart size={18} /> },
-        { id: 'keuangan', label: 'Keuangan', icon: <BarChart3 size={18} /> },
+        { id: 'keuangan', label: 'Arus Kas', icon: <BarChart3 size={18} /> },
         { id: 'iuran', label: 'Iuran', icon: <CreditCard size={18} /> },
         { id: 'logistik', label: 'Logistik', icon: <Package size={18} /> },
         { id: 'penerima_manfaat', label: 'Penerima Manfaat', icon: <Heart size={18} /> },

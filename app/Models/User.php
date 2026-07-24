@@ -50,4 +50,9 @@ class User extends Authenticatable
             ? asset('storage/' . $this->avatar)
             : 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&background=CC0001&color=fff';
     }
+
+    public function member()
+    {
+        return $this->hasOne(Member::class);
+    }
 }

@@ -58,7 +58,7 @@ const PERMISSION_GROUPS = [
         permissions: ['menu-programs', 'menu-beneficiaries', 'menu-news']
     },
     {
-        title: "Keuangan & Donasi",
+        title: "Arus Kas & Donasi",
         permissions: ['menu-finance', 'menu-donations', 'menu-dues']
     },
     {
@@ -81,7 +81,7 @@ const PERMISSION_LABELS: Record<string, string> = {
     'menu-programs': 'Program Kerja',
     'menu-beneficiaries': 'Penerima Manfaat',
     'menu-news': 'Berita & Informasi',
-    'menu-finance': 'Keuangan',
+    'menu-finance': 'Arus Kas',
     'menu-donations': 'Manajemen Donasi',
     'menu-dues': 'Manajemen Iuran',
     'menu-logistics': 'Logistik',

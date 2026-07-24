@@ -106,7 +106,7 @@ class FinanceController extends Controller
             FinancialTransaction::create($validated);
 
             return redirect()->route('finance.index')
-                ->with('success', 'Transaksi keuangan berhasil disimpan.');
+                ->with('success', 'Transaksi arus kas berhasil disimpan.');
         } catch (\Throwable $e) {
             return back()->with('error', 'Gagal menyimpan transaksi: ' . $e->getMessage());
         }
@@ -138,7 +138,7 @@ class FinanceController extends Controller
             $finance->update($validated);
 
             return redirect()->route('finance.index')
-                ->with('success', 'Transaksi keuangan berhasil diperbarui.');
+                ->with('success', 'Transaksi arus kas berhasil diperbarui.');
         } catch (\Throwable $e) {
             return back()->with('error', 'Gagal memperbarui transaksi: ' . $e->getMessage());
         }
@@ -153,7 +153,7 @@ class FinanceController extends Controller
             $finance->delete();
 
             return redirect()->route('finance.index')
-                ->with('success', 'Transaksi keuangan berhasil dihapus.');
+                ->with('success', 'Transaksi arus kas berhasil dihapus.');
         } catch (\Throwable $e) {
             return back()->with('error', 'Gagal menghapus transaksi: ' . $e->getMessage());
         }
@@ -164,13 +164,13 @@ class FinanceController extends Controller
         $filters = $request->only(['type', 'category', 'date_from', 'date_to', 'month', 'year']);
         return Excel::download(
             new FinanceExport($filters),
-            'keuangan-' . now()->format('Ymd') . '.xlsx'
+            'arus-kas-' . now()->format('Ymd') . '.xlsx'
         );
     }
 
     public function downloadTemplate(): BinaryFileResponse
     {
-        return Excel::download(new FinanceTemplateExport(), 'template-import-keuangan.xlsx');
+        return Excel::download(new FinanceTemplateExport(), 'template-import-arus-kas.xlsx');
     }
 
     public function importExcel(Request $request): RedirectResponse
@@ -181,7 +181,7 @@ class FinanceController extends Controller
 
         try {
             Excel::import(new FinanceImport, $request->file('file'));
-            return back()->with('success', 'Data keuangan berhasil diimport.');
+            return back()->with('success', 'Data arus kas berhasil diimport.');
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
             return back()->with('error', 'Gagal import: Periksa format data Excel.');
         } catch (\Throwable $e) {

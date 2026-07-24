@@ -13,12 +13,14 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\OrganizationProfileController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\FinancialReceiptController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VolunteerController;
 use App\Http\Controllers\VehicleUsageController;
 use App\Http\Controllers\DonationController;
 use App\Http\Controllers\PublicDonationController;
 use App\Http\Controllers\HelpdeskController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -58,6 +60,9 @@ Route::post('/konfirmasi-donasi', [PublicDonationController::class, 'store'])
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    // Notifications
+    Route::post('/notifications/{id}/mark-read', [NotificationController::class, 'markRead'])->name('notifications.mark-read');
+
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
@@ -123,6 +128,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dues
     Route::middleware(['permission:menu-dues'])->group(function () {
+        Route::post('/dues/bulk-pay', [DuesController::class, 'bulkMarkPaid'])->name('dues.bulk_pay');
         Route::post('/dues/{payment}/pay', [DuesController::class, 'markPaid'])->name('dues.pay');
         Route::post('/dues/{payment}/unpay', [DuesController::class, 'markUnpaid'])->name('dues.unpay');
         Route::resource('dues', DuesController::class);
@@ -130,11 +136,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Finance & Bank Accounts
     Route::middleware(['permission:menu-finance'])->group(function () {
-        Route::get('/finance/export', [FinanceController::class, 'exportExcel'])->name('finance.export');
-        Route::get('/finance/template', [FinanceController::class, 'downloadTemplate'])->name('finance.template');
-        Route::post('/finance/import', [FinanceController::class, 'importExcel'])->name('finance.import');
-        Route::resource('finance', FinanceController::class);
+        Route::resource('finance', FinanceController::class)->except(['create', 'show', 'edit']);
+        Route::get('finance-export', [FinanceController::class, 'exportExcel'])->name('finance.export');
+        Route::get('finance-template', [FinanceController::class, 'downloadTemplate'])->name('finance.template');
+        Route::post('finance-import', [FinanceController::class, 'importExcel'])->name('finance.import');
         
+        // Kwitansi Digital
+        Route::get('financial-receipts', [FinancialReceiptController::class, 'index'])->name('financial-receipts.index');
+        Route::post('financial-receipts', [FinancialReceiptController::class, 'store'])->name('financial-receipts.store');
+        Route::get('financial-receipts/{financialReceipt}/print', [FinancialReceiptController::class, 'print'])->name('financial-receipts.print');
+
         Route::post('/finance/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
         Route::put('/finance/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
         Route::delete('/finance/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');

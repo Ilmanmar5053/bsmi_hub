@@ -1,12 +1,12 @@
-import React, { useState, PropsWithChildren } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import React, { useState, PropsWithChildren, useEffect } from 'react';
+import { Link, usePage, router } from '@inertiajs/react';
 import {
     LayoutDashboard, Building2, Users, UserCog, Heart, Calendar,
     Package, CreditCard, BarChart3, UserPlus, ChevronLeft,
     Menu, Sun, Moon, LogOut, Settings, Stethoscope, UserCheck, GraduationCap, Newspaper, FileText, ShieldAlert,
-    ChevronDown, ChevronRight, LifeBuoy
+    ChevronDown, ChevronRight, LifeBuoy, X, Bell, Clock
 } from 'lucide-react';
-import { FlashMessage } from '@/Components/Shared';
+import { FlashMessage, SensitiveDataField } from '@/Components/Shared';
 
 interface NavItem {
     label: string;
@@ -64,7 +64,8 @@ const navItems: NavItem[] = [
         label: 'Keuangan & Logistik',
         icon: <BarChart3 size={18} />,
         children: [
-            { label: 'Keuangan',          href: '/finance',             permission: 'menu-finance' },
+            { label: 'Arus Kas',          href: '/finance',             permission: 'menu-finance' },
+            { label: 'Transaksi Keuangan',href: '/financial-receipts',  permission: 'menu-finance' },
             { label: 'Manajemen Donasi',  href: '/donations',           permission: 'menu-donations' },
             { label: 'Manajemen Iuran',   href: '/dues',                permission: 'menu-dues' },
             { label: 'Logistik',          href: '/logistics',           permission: 'menu-logistics' },
@@ -97,7 +98,15 @@ export default function AppLayout({ children }: PropsWithChildren) {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
-    
+    const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [notificationOpen, setNotificationOpen] = useState(false);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
     const isSidebarExpanded = sidebarOpen || isHovered;
 
     const isActive = (href: string) => {
@@ -143,6 +152,16 @@ export default function AppLayout({ children }: PropsWithChildren) {
         setExpandedGroups(prev => 
             prev.includes(label) ? prev.filter(g => g !== label) : [...prev, label]
         );
+    };
+
+    const markNotificationAsRead = (id: string, url: string) => {
+        router.post(`/notifications/${id}/mark-read`, {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setNotificationOpen(false);
+                if (url) router.visit(url);
+            }
+        });
     };
 
     const toggleDark = () => {
@@ -236,7 +255,42 @@ export default function AppLayout({ children }: PropsWithChildren) {
         
         document.documentElement.setAttribute('data-theme', roleTheme);
         
-        }, [(props as any).auth?.roles]);
+    }, [(props as any).auth?.roles]);
+
+    // Idle Auto-Logout Timer (15 minutes)
+    React.useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+
+        const resetTimer = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                // Perform logout and redirect to main page on inactivity
+                router.post('/logout');
+            }, 15 * 60 * 1000); // 15 minutes
+        };
+
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+        
+        // Start timer
+        resetTimer();
+
+        // Attach listeners
+        events.forEach(event => document.addEventListener(event, resetTimer, true));
+
+        return () => {
+            clearTimeout(timeoutId);
+            events.forEach(event => document.removeEventListener(event, resetTimer, true));
+        };
+    }, []);
+
+    // Notification Polling (Every 15 seconds)
+    React.useEffect(() => {
+        const intervalId = setInterval(() => {
+            router.reload({ only: ['auth'] });
+        }, 15000); // 15 seconds
+
+        return () => clearInterval(intervalId);
+    }, []);
 
     return (
         <div className={darkMode ? 'dark' : ''}>
@@ -255,7 +309,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     className={`fixed top-0 left-0 h-full bg-gradient-to-b from-theme-700 via-theme-800 to-theme-900 border-r border-theme-800 z-40 transition-all duration-300 ease-in-out flex flex-col shadow-xl ${
-                        isSidebarExpanded ? 'w-[260px]' : 'w-[70px]'
+                        isSidebarExpanded ? 'w-[280px]' : 'w-[70px]'
                     }`}
                 >
                     {/* Logo */}
@@ -329,7 +383,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
                 </aside>
 
                 {/* Main Content */}
-                <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${sidebarOpen ? 'lg:pl-[260px]' : 'lg:pl-[70px]'}`}>
+                <main className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${sidebarOpen ? 'lg:pl-[280px]' : 'lg:pl-[70px]'}`}>
                     {/* Top Header */}
                     <header className="sticky top-0 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-4 sm:px-6 py-3">
                         <div className="flex items-center justify-between gap-3">
@@ -345,6 +399,12 @@ export default function AppLayout({ children }: PropsWithChildren) {
                                 {/* Breadcrumb placeholder */}
                             </div>
                             <div className="flex items-center gap-2">
+                                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 mr-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-sm">
+                                    <Clock size={16} className="text-gray-400" />
+                                    <span>
+                                        {new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(currentTime)} | {new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(currentTime).replace(/\./g, ':')}
+                                    </span>
+                                </div>
                                 <button
                                     onClick={toggleDark}
                                     className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
@@ -352,14 +412,82 @@ export default function AppLayout({ children }: PropsWithChildren) {
                                 >
                                     {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                                 </button>
+
+                                {/* Notification Bell */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => {
+                                            setNotificationOpen(!notificationOpen);
+                                            setUserDropdownOpen(false);
+                                        }}
+                                        className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors relative"
+                                    >
+                                        <Bell size={18} />
+                                        {(props as any).auth?.notifications?.length > 0 && (
+                                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-900 animate-pulse"></span>
+                                        )}
+                                    </button>
+
+                                    {notificationOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-40" onClick={() => setNotificationOpen(false)}></div>
+                                            <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-2 z-50 animate-fade-in max-h-[400px] overflow-y-auto">
+                                                <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifikasi</h3>
+                                                </div>
+                                                <div className="py-1">
+                                                    {((props as any).auth?.notifications || []).length === 0 ? (
+                                                        <div className="px-4 py-6 text-center text-gray-500 text-sm">
+                                                            Belum ada notifikasi baru.
+                                                        </div>
+                                                    ) : (
+                                                        ((props as any).auth?.notifications || []).map((notif: any) => (
+                                                            <div 
+                                                                key={notif.id}
+                                                                onClick={() => markNotificationAsRead(notif.id, notif.data.url)}
+                                                                className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors border-b border-gray-50 dark:border-gray-700/50 last:border-0"
+                                                            >
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-white mb-0.5">{notif.data.title}</p>
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{notif.data.message}</p>
+                                                                <p className="text-[10px] text-gray-400 mt-1">{new Date(notif.created_at).toLocaleDateString('id-ID', {hour: '2-digit', minute:'2-digit'})}</p>
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
                                 <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
-                                <div className="flex items-center gap-2 pl-1">
-                                    <div className="w-7 h-7 rounded-full bg-theme-600 flex items-center justify-center text-white text-xs font-bold">
-                                        {(props as any).auth?.user?.name?.charAt(0) ?? 'A'}
+                                <div className="relative">
+                                    <div 
+                                        className="flex items-center gap-2 pl-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-1 pr-2 rounded-xl transition-colors"
+                                        onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                                    >
+                                        <div className="w-7 h-7 rounded-full bg-theme-600 flex items-center justify-center text-white text-xs font-bold">
+                                            {(props as any).auth?.user?.name?.charAt(0) ?? 'A'}
+                                        </div>
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block select-none">
+                                            {(props as any).auth?.user?.name ?? 'Admin'}
+                                        </span>
+                                        <ChevronDown size={14} className="text-gray-400 hidden sm:block" />
                                     </div>
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block">
-                                        {(props as any).auth?.user?.name ?? 'Admin'}
-                                    </span>
+
+                                    {userDropdownOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-40" onClick={() => setUserDropdownOpen(false)}></div>
+                                            <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-50 animate-fade-in">
+                                                <button 
+                                                    onClick={() => { setIsProfileModalOpen(true); setUserDropdownOpen(false); }}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+                                                >
+                                                    <UserCog size={16} className="text-gray-400" />
+                                                    View Profile
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -380,6 +508,107 @@ export default function AppLayout({ children }: PropsWithChildren) {
                     </footer>
                 </main>
             </div>
+
+            {/* Profile Modal */}
+            {isProfileModalOpen && (
+                <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col transform transition-all">
+                        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
+                            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-lg">
+                                <UserCheck size={18} className="text-theme-600 dark:text-theme-500" />
+                                Overview Profile
+                            </h3>
+                            <button 
+                                onClick={() => setIsProfileModalOpen(false)} 
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <div className="flex items-center gap-5 mb-6">
+                                <div className="w-20 h-20 rounded-full bg-theme-100 dark:bg-theme-900/40 flex items-center justify-center text-theme-600 dark:text-theme-400 text-3xl font-bold shadow-sm ring-4 ring-white dark:ring-gray-800">
+                                    {(props as any).auth?.user?.name?.charAt(0) ?? 'A'}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-xl font-bold text-gray-900 dark:text-white truncate">{(props as any).auth?.user?.name}</h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">{(props as any).auth?.user?.email}</p>
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {(props as any).auth?.roles?.map((r: string) => (
+                                            <span key={r} className="px-2.5 py-0.5 bg-theme-50 dark:bg-theme-900/30 text-theme-600 dark:text-theme-400 border border-theme-100 dark:border-theme-800/50 text-[10px] rounded-full font-medium uppercase tracking-wider">
+                                                {r}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {(props as any).auth?.member ? (
+                                <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800/40 p-5 rounded-xl border border-gray-100 dark:border-gray-800">
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">No. Induk Anggota</p>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{(props as any).auth?.member?.no_induk_anggota || '-'}</p>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Regional Cabang</p>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{(props as any).auth?.member?.regional_cabang || '-'}</p>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Bagian Divisi</p>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{(props as any).auth?.member?.bagian_divisi || '-'}</p>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">No. WhatsApp</p>
+                                        <SensitiveDataField value={(props as any).auth?.member?.no_whatsapp} />
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Email</p>
+                                        <SensitiveDataField value={(props as any).auth?.member?.email} />
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Pendidikan Terakhir</p>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{(props as any).auth?.member?.pendidikan_terakhir || '-'}</p>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Jurusan</p>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{(props as any).auth?.member?.jurusan || '-'}</p>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Status Keluarga</p>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{(props as any).auth?.member?.status_keluarga || '-'}</p>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Golongan Darah</p>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{(props as any).auth?.member?.golongan_darah || '-'}</p>
+                                    </div>
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Profesi Utama</p>
+                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{(props as any).auth?.member?.profesi_utama || '-'}</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 text-sm text-center">
+                                    Akun ini merupakan akun pengurus/administrator dan tidak terhubung dengan data keanggotaan spesifik.
+                                </div>
+                            )}
+
+                            <div className="mt-6 p-3.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/30 rounded-xl text-[13px] text-orange-700 dark:text-orange-400 flex gap-3 items-start shadow-sm">
+                                <ShieldAlert size={18} className="shrink-0 mt-0.5" />
+                                <p className="leading-relaxed">Sesuai kebijakan organisasi, pembaruan data profil hanya dapat dilakukan secara terpusat oleh <strong>Administrator Pusat</strong> untuk menjaga validitas data keanggotaan.</p>
+                            </div>
+                            
+                            <div className="mt-6 flex justify-end">
+                                <button 
+                                    onClick={() => setIsProfileModalOpen(false)}
+                                    className="px-5 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-medium rounded-lg transition-colors"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

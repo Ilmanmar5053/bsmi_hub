@@ -52,10 +52,8 @@ export default function HelpdeskIndex({ organization, myTickets }: any) {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column: Form & History */}
-                    <div className="lg:col-span-2 space-y-8">
-                        {/* Form Card */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    {/* Form Card */}
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                             <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
                                 <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -100,34 +98,6 @@ export default function HelpdeskIndex({ organization, myTickets }: any) {
                                 </div>
                             </form>
                         </div>
-
-                        {/* History Card */}
-                        {myTickets.length > 0 && (
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">Riwayat Pengaduan Saya</h2>
-                                </div>
-                                <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                                    {myTickets.map((ticket: any) => (
-                                        <div key={ticket.id} className="p-6">
-                                            <div className="flex items-start justify-between gap-4 mb-2">
-                                                <h3 className="font-bold text-gray-900 dark:text-white">{ticket.subject}</h3>
-                                                <span className={`px-2.5 py-1 text-xs font-semibold rounded-lg border ${getStatusColor(ticket.status)}`}>
-                                                    {getStatusLabel(ticket.status)}
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 whitespace-pre-wrap">
-                                                {ticket.message}
-                                            </p>
-                                            <div className="text-xs text-gray-400">
-                                                Dikirim pada: {new Date(ticket.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
 
                     {/* Right Column: Contact Info */}
                     <div className="space-y-6">
@@ -184,6 +154,44 @@ export default function HelpdeskIndex({ organization, myTickets }: any) {
                         </div>
                     </div>
                 </div>
+
+                {/* Bottom Section: History Card */}
+                {myTickets.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Riwayat Pengaduan Saya</h2>
+                        </div>
+                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {myTickets.map((ticket: any) => (
+                                <div key={ticket.id} className="p-6">
+                                    <div className="flex items-start justify-between gap-4 mb-2">
+                                        <h3 className="font-bold text-gray-900 dark:text-white">{ticket.subject}</h3>
+                                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-lg border ${getStatusColor(ticket.status)}`}>
+                                            {getStatusLabel(ticket.status)}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 whitespace-pre-wrap">
+                                        {ticket.message}
+                                    </p>
+                                    <div className="text-xs text-gray-400">
+                                        Dikirim pada: {new Date(ticket.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                                    </div>
+                                    {ticket.admin_response && (
+                                        <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-100 dark:border-gray-700">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <MessageSquare size={16} className="text-theme-600" />
+                                                <span className="text-theme-600 font-bold text-xs uppercase tracking-wider">Tanggapan Admin</span>
+                                            </div>
+                                            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap italic text-justify">
+                                                {ticket.admin_response}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </AppLayout>
     );

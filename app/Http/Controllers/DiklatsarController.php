@@ -10,6 +10,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 
 class DiklatsarController extends Controller
 {
@@ -48,11 +49,19 @@ class DiklatsarController extends Controller
             'signature_2_title' => 'Kepala Divisi Relawan'
         ]);
 
+        $executives = \App\Models\Executive::where('status_aktif', true)->pluck('nama_lengkap')->toArray();
+        $members = \App\Models\Member::where('status_aktif', true)->pluck('nama_lengkap')->toArray();
+        $signatoryCandidates = collect(array_merge($executives, $members))
+            ->unique()
+            ->sort()
+            ->values();
+
         return Inertia::render('Diklatsar/Index', [
             'volunteers'         => $volunteers,
             'filters'            => ['search' => $search],
             'modules'            => $modules,
             'certificateSetting' => $certificateSetting,
+            'signatoryCandidates'=> $signatoryCandidates,
         ]);
     }
 
@@ -85,10 +94,29 @@ class DiklatsarController extends Controller
             'signature_1_title'  => 'nullable|string|max:255',
             'signature_2_name'   => 'nullable|string|max:255',
             'signature_2_title'  => 'nullable|string|max:255',
+            'signature_1_image'  => 'nullable|image|mimes:png|max:2048',
+            'signature_2_image'  => 'nullable|image|mimes:png|max:2048',
         ]);
 
         $setting = CertificateSetting::firstOrCreate([]);
-        $setting->update($validated);
+        
+        $data = $request->except(['signature_1_image', 'signature_2_image']);
+        
+        if ($request->hasFile('signature_1_image')) {
+            if ($setting->signature_1_image) {
+                Storage::disk('public')->delete($setting->signature_1_image);
+            }
+            $data['signature_1_image'] = $request->file('signature_1_image')->store('signatures', 'public');
+        }
+
+        if ($request->hasFile('signature_2_image')) {
+            if ($setting->signature_2_image) {
+                Storage::disk('public')->delete($setting->signature_2_image);
+            }
+            $data['signature_2_image'] = $request->file('signature_2_image')->store('signatures', 'public');
+        }
+
+        $setting->update($data);
 
         return back()->with('success', 'Pengaturan sertifikat berhasil disimpan.');
     }

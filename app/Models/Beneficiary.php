@@ -12,7 +12,7 @@ class Beneficiary extends Model
 
     protected $fillable = [
         'name', 'category', 'address', 'phone', 'nik',
-        'family_members', 'description', 'total_received',
+        'family_members', 'description', 'total_received', 'photo_path'
     ];
 
     protected $casts = [
